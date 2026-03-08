@@ -49,7 +49,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #if defined(__KERNEL__)
 typedef struct _PVRSRV_DEVICE_NODE_ *SHARED_DEV_CONNECTION;
 #else
-typedef IMG_HANDLE SHARED_DEV_CONNECTION;
+#include "connection.h"
+typedef const struct _PVRSRV_DEV_CONNECTION_ *SHARED_DEV_CONNECTION;
 #endif
 
 /******************************************************************************
@@ -75,5 +76,14 @@ typedef IMG_HANDLE SHARED_DEV_CONNECTION;
 
 #define PVRSRV_PDUMP_IS_RECORDING_SHIFT (4)
 #define PVRSRV_PDUMP_IS_RECORDING (1U << PVRSRV_PDUMP_IS_RECORDING_SHIFT)
+
+static INLINE IMG_HANDLE GetBridgeHandle(SHARED_DEV_CONNECTION hDevConnection)
+{
+#if defined(__KERNEL__)
+    return hDevConnection;
+#else
+    return hDevConnection->hServices;
+#endif
+}
 
 #endif /* !defined(__DEVICE_CONNECTION_H__) */
