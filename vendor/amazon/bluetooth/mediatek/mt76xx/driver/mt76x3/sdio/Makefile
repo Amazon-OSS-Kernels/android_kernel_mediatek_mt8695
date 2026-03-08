@@ -35,7 +35,7 @@ ifeq ($(CONFIG_MP_WAKEUP_SOURCE_SYSFS_STAT), y)
 else
 endif
 
-ifneq ($(filter abc123_ftv abc123, $(TARGET_PRODUCT)),)
+ifneq ($(filter abc123_ftv abc123 abc123, $(TARGET_PRODUCT)),)
     ccflags-y += -Dabc123_AML_TEMP_CHIP_RESET_FIX
 endif
 
