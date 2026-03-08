@@ -20,40 +20,65 @@
 #include <linux/of_address.h>
 #include <linux/module.h>
 #include <linux/kthread.h>
-#include "stc.h"
+#include <linux/clk.h>
 
+#include "stc.h"
 
 static dev_t stc_devno;
 static struct cdev *stc_cdev;
 static struct class *stc_class;
 static void __iomem *stc_reg_base;
 static bool stc_id_using[DMX_STC_NS];
-
+struct clk *stc_clk;
+static bool stc_clk_enable;
 
 static int alloc_stc(unsigned int *id)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < DMX_STC_NS; i++) {
-		if (stc_id_using[i] == false) {
-			stc_id_using[i] = true;
-			*id = i;
-			return 0;
+		if (!stc_id_using[i])
+			break;
+
+		if (i == (DMX_STC_NS - 1)) {
+			*id = -1;
+			pr_notice("[STC] Error: No free stc hw.\n");
+			return -1;
 		}
 	}
-	*id = -1;
-	pr_notice("[STC] Error: No free stc hw.\n");
 
-	return -1;
+	if (!stc_clk_enable) {
+		pr_info("%s clk\n", __func__);
+		clk_prepare_enable(stc_clk);
+		stc_clk_enable = true;
+	}
+
+	stc_id_using[i] = true;
+	*id = i;
+
+	return 0;
 }
 
 static int free_stc(unsigned int id)
 {
-	if (id < DMX_STC_NS)
+	unsigned int i;
+
+	if (id < DMX_STC_NS) {
 		stc_id_using[id] = false;
-	else {
+	} else {
 		pr_notice("[STC] Wrong stc id: %u in %s\n", id, __func__);
 		return -1;
+	}
+
+	for (i = 0; i < DMX_STC_NS; i++) {
+		if (stc_id_using[i])
+			return 0;
+	}
+
+	pr_info("%s clk\n", __func__);
+	if (stc_clk_enable) {
+		clk_disable_unprepare(stc_clk);
+		stc_clk_enable = false;
 	}
 
 	return 0;
@@ -341,7 +366,7 @@ static const struct file_operations mtk_stc_fops = {
 	.release = mtk_stc_release,
 };
 
-static int stc_parse_dev_node(void)
+static int stc_parse_dev_node(struct device *dev)
 {
 	struct device_node *np;
 	unsigned int reg_value;
@@ -361,6 +386,12 @@ static int stc_parse_dev_node(void)
 	}
 
 	pr_debug("stc reg base PA:0x%016x, VA:0x%p\n", reg_value, stc_reg_base);
+
+	stc_clk = devm_clk_get(dev, "osdpll");
+	if (IS_ERR(stc_clk)) {
+		pr_info("%s devm_clk_get osdpll %p fail\n", __func__, stc_clk);
+		return PTR_ERR(stc_clk);
+	}
 
 	return STC_OK;
 }
@@ -432,25 +463,68 @@ static int stc_test(void *data)
 static int mtk_stc_probe(struct platform_device *pdev)
 {
 	int ret = 0;
+	struct device *dev;
 
-	alloc_chrdev_region(&stc_devno, 0, 1, STC_SESSION_DEVICE);
+	ret = alloc_chrdev_region(&stc_devno, 0, 1, STC_SESSION_DEVICE);
+	if (ret < 0) {
+		pr_info("%s region alloc failed\n", __func__);
+		return ret;
+	}
+
 	stc_cdev = cdev_alloc();
 	stc_cdev->owner = THIS_MODULE;
 	stc_cdev->ops = &mtk_stc_fops;
-	cdev_add(stc_cdev, stc_devno, 1);
-	stc_class = class_create(THIS_MODULE, STC_SESSION_DEVICE);
-	device_create(stc_class, NULL, stc_devno, NULL, STC_SESSION_DEVICE);
+	ret = cdev_add(stc_cdev, stc_devno, 1);
+	if (ret) {
+		pr_info("%s cdev add failed\n", __func__);
+		goto cdev_add_fail;
+	}
 
-	device_create_file(&pdev->dev, &dev_attr_stc);
-	ret = stc_parse_dev_node();
-	if (ret == STC_OK)
-		init_stc_hw();  /* HW reset maybe need here */
+	stc_class = class_create(THIS_MODULE, STC_SESSION_DEVICE);
+	if (IS_ERR(stc_class)) {
+		pr_info("%s class create failed\n", __func__);
+		ret = PTR_ERR(stc_class);
+		goto class_create_fail;
+	}
+
+	dev = device_create(stc_class, NULL, stc_devno, NULL,
+				STC_SESSION_DEVICE);
+	if (IS_ERR(dev)) {
+		pr_info("%s device create failed\n", __func__);
+		ret = PTR_ERR(dev);
+		goto dev_create_fail;
+	}
+
+	ret = device_create_file(&pdev->dev, &dev_attr_stc);
+	if (ret) {
+		pr_info("%s device file create failed\n", __func__);
+		goto dev_file_create_fail;
+	}
+
+	ret = stc_parse_dev_node(&pdev->dev);
+	if (ret != STC_OK)
+		goto out;
+
+	init_stc_hw();  /* HW reset maybe need here */
 
 #if (stc_test_enable)
 	{
 		kthread_run(stc_test, NULL, "stc_test");
 	}
 #endif
+
+	return STC_OK;
+
+out:
+	device_remove_file(&pdev->dev, &dev_attr_stc);
+dev_file_create_fail:
+	device_destroy(stc_class, stc_devno);
+dev_create_fail:
+	class_destroy(stc_class);
+class_create_fail:
+	cdev_del(stc_cdev);
+cdev_add_fail:
+	unregister_chrdev_region(stc_devno, 1);
 
 	return ret;
 }
@@ -477,11 +551,6 @@ static void mtk_stc_shutdown(struct platform_device *pdev)
 
 }
 
-static void mtk_stc_device_release(struct device *dev)
-{
-
-}
-
 static int __maybe_unused stc_suspend(struct device *dev)
 {
 	return 0;
@@ -498,19 +567,10 @@ static const struct dev_pm_ops stc_dev_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(stc_suspend, stc_resume)
 };
 
-static u64 mtk_stc_dmamask = ~(u32) 0;
-
-static struct platform_device mtk_stc_device = {
-	.name = STC_SESSION_DEVICE,
-	.id = 0,
-	.dev = {
-		.release = mtk_stc_device_release,
-		.dma_mask = &mtk_stc_dmamask,
-		.coherent_dma_mask = 0xffffffff,
-		},
-	.num_resources = 0,
+static const struct of_device_id mtk_stc_of_ids[] = {
+	{ .compatible = "mediatek,mt8695-stc", },
+	{}
 };
-
 
 static struct platform_driver mtk_stc_driver = {
 	.probe = mtk_stc_probe,
@@ -518,6 +578,7 @@ static struct platform_driver mtk_stc_driver = {
 	.shutdown = mtk_stc_shutdown,
 	.driver = {
 		   .name = STC_SESSION_DEVICE,
+		   .of_match_table = mtk_stc_of_ids,
 		   .owner = THIS_MODULE,
 		   .pm = &stc_dev_pm_ops,
 		   },
@@ -527,9 +588,6 @@ static struct platform_driver mtk_stc_driver = {
 static int __init mtk_stc_init(void)
 {
 	pr_debug("mtk_stc_init in\n");
-
-	if (platform_device_register(&mtk_stc_device))
-		return -ENODEV;
 
 	if (platform_driver_register(&mtk_stc_driver))
 		return -ENODEV;

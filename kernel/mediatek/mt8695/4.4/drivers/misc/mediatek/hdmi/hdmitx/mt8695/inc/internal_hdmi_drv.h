@@ -229,6 +229,7 @@ typedef struct {
 	unsigned char (*checkedidheader)(void);
 	unsigned int (*gethdmistatus)(void);
 	void (*hdcp_info)(HDCP_INFO *hdcp_information);
+	int (*setsuspendmode)(unsigned int suspend);
 } HDMI_DRIVER;
 
 
@@ -251,5 +252,7 @@ extern unsigned int hdmi_irq, cec_irq;
 extern unsigned int hdmi_hotplugstate;
 extern unsigned int hdmi_hotplugout_count;
 extern unsigned int hdmi_TmrValue[MAX_HDMI_TMR_NUMBER];
+extern int hdmi_suspend_mode(unsigned int suspend);
+
 
 #endif

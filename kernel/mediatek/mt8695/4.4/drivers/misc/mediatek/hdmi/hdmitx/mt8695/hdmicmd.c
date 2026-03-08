@@ -3897,7 +3897,8 @@ static void process_dbg_cmd(char *opt)
 		hdmi_rxcecmode = en;
 		HDMI_ATTR_SPRINTF("2 hdmi_rxcecmode=%x\n", hdmi_rxcecmode);
 	} else if (strncmp(opt, "test:", 5) == 0)
-		hdmi_test_mode(opt + 5); else
+		hdmi_test_mode(opt + 5);
+	else
 		goto Error;
 	return;
 

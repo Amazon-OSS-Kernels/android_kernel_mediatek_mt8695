@@ -26,6 +26,7 @@
 #include "disp_clk.h"
 
 extern struct disp_hw_common_info disp_common_info;
+extern bool is_boot_time;
 
 /*
 * If add, at last and before DISP_MODULE_NUM.
@@ -57,14 +58,15 @@ enum DISP_HW_LAYER {
 * 1 << module
 */
 enum DISP_EVENT {
-	DISP_EVENT_PLUG_IN					= 1 << 0,
-	DISP_EVENT_PLUG_OUT					= 1 << 1,
-	DISP_EVENT_CHANGE_RES		= 1 << 2,
-	DISP_EVENT_ACT_START			= 1 << 3,
-	DISP_EVENT_VSYNC				= 1 << 4,
-	DISP_EVENT_CHANGE_RES_DONE	= 1 << 5,
-	DISP_EVENT_VIDEO_VSYNC          = 1 << 6,
-	DISP_EVENT_FORCE_HDR			= 1 << 7,
+	DISP_EVENT_PLUG_IN                = 1 << 0,
+	DISP_EVENT_PLUG_OUT               = 1 << 1,
+	DISP_EVENT_CHANGE_RES             = 1 << 2,
+	DISP_EVENT_ACT_START              = 1 << 3,
+	DISP_EVENT_VSYNC                  = 1 << 4,
+	DISP_EVENT_CHANGE_RES_DONE        = 1 << 5,
+	DISP_EVENT_VIDEO_VSYNC            = 1 << 6,
+	DISP_EVENT_FORCE_HDR              = 1 << 7,
+	DISP_EVENT_LOW_ENERGY_DOZING_MODE = 1 << 8,
 };
 
 enum DISP_HW_MGR_STATUS {
@@ -119,6 +121,7 @@ struct disp_hw_common_info {
 	struct mtk_disp_vdp_cap vdp_cap;
 	int hw_mgr_status;
 	int osd_swap;
+	bool low_energy_dozing_mode_enable;
 };
 
 struct disp_hw_sequence {
@@ -255,6 +258,7 @@ int disp_hw_mgr_dump(uint32_t level);
 int disp_hw_mgr_send_event(enum DISP_EVENT event, void *data);
 int disp_hw_mgr_resume(void);
 int disp_hw_mgr_suspend(void);
+bool disp_hw_mgr_get_dozing_mode(void);
 bool disp_hw_mgr_is_slept(void);
 int disp_hw_mgr_deinit(void);
 

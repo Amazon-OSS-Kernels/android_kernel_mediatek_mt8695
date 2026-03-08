@@ -330,7 +330,7 @@ void vSetSharedInfo(unsigned int u4Index, unsigned int i4Value)
 void vSendHdmiCmd(unsigned char u1icmd)
 {
 	HDMI_DRV_FUNC();
-	hdmi_hdmiCmd = u1icmd;
+	hdmi_hdmiCmd[u1icmd] = u1icmd;
 }
 
 unsigned char hdmi_check_hdcp_key(void)
@@ -398,10 +398,10 @@ void vSvp_mutehdmi(unsigned char u1svpvideomute, unsigned char u1svpaudiomute)
 	VHdmiMuteVideoAudio(u1svpvideomute, u1svpaudiomute);
 }
 
-void vClearHdmiCmd(void)
+void vClearHdmiCmd(unsigned char u1icmd)
 {
 	HDMI_DRV_FUNC();
-	hdmi_hdmiCmd = 0xff;
+	hdmi_hdmiCmd[u1icmd] = 0xff;
 }
 
 void vHDMIClearINT(void)

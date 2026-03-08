@@ -50,6 +50,7 @@
 #include "hdmiedid.h"
 
 /* ////////////////////////////////////// */
+#define BYTE_MASK 0xFF
 
 /*for color space*/
 #define RGB_444  0

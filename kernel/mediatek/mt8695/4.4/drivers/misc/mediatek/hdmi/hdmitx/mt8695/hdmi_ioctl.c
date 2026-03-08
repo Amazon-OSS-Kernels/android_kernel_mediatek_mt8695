@@ -383,6 +383,9 @@ bool hdmi_show_ioctl(unsigned int cmd, unsigned long arg)
 	case MTK_HDMI_CEC_ENABLE:
 		HDMI_CEC_LOG("[ioctl]MTK_HDMI_CEC_ENABLE, arg = %ld\n", arg);
 		break;
+	case MTK_HDMI_SUSPEND_MODE:
+		HDMI_CEC_LOG("[ioctl]MTK_HDMI_SUSPEND_MODE, arg = %ld\n", arg);
+		break;
 	case MTK_HDMI_GET_CECADDR:
 		HDMI_CEC_LOG("[ioctl]MTK_HDMI_GET_CECADDR, arg = %ld\n", arg);
 		break;
@@ -629,6 +632,14 @@ static long hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case MTK_HDMI_VIDEO_CONFIG:
 		{
 			r = hdmi_video_config(arg);
+			break;
+		}
+
+	case MTK_HDMI_SUSPEND_MODE:
+		{
+			unsigned int ui1mode = (arg & BYTE_MASK);
+
+			hdmi_drv->setsuspendmode(ui1mode);
 			break;
 		}
 

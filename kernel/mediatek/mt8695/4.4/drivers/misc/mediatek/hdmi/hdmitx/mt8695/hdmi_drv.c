@@ -64,6 +64,10 @@
 #include "internal_hdmi_drv.h"
 #include <linux/pm_runtime.h>
 
+#if IS_ENABLED(CONFIG_MTK_FB)
+#include "disp_hw_mgr.h"
+#endif
+
 #include "hdmiavd.h"
 #include "hdmicmd.h"
 
@@ -128,11 +132,10 @@ unsigned char hdmi_sdcksel;
 unsigned char hdmi_sdcksel_first;
 unsigned char hdmi_sdosd_first;
 unsigned char hdmi_hdtvd_first;
-unsigned char hdmi_5vpower;
 
 unsigned int hdmi_TmrValue[MAX_HDMI_TMR_NUMBER] = { 0 };
 
-unsigned char hdmi_hdmiCmd = 0xff;
+unsigned char hdmi_hdmiCmd[MAX_HDMI_TMR_NUMBER] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 unsigned char hdmi_rxcecmode = CEC_NORMAL_MODE;
 HDMI_CTRL_STATE_T e_hdmi_ctrl_state = HDMI_STATE_IDLE;
 HDCP_CTRL_STATE_T e_hdcp_ctrl_state = HDCP_RECEIVER_NOT_READY;
@@ -176,6 +179,9 @@ bool _fgWifiHdcpErr = FALSE;	/* for hdcp 2.x to 1.x converter */
 size_t display_off = 0;
 unsigned int u1hdcponoff_bak;
 static unsigned char hdmi_first_hdcp = 1;
+
+#define HDMI_EARLY_SUSPEND_MODE_POWER_OFF 0
+#define HDMI_EARLY_SUSPEND_MODE_BLACK_SCREEN 1
 
 size_t display_off;
 unsigned char hdmi_plug_test_mode;
@@ -1144,8 +1150,6 @@ void hdmi_internal_set_mode(unsigned char ucMode)
 
 int hdmi_internal_power_on(void)
 {
-	struct pinctrl *p;
-	struct pinctrl_state *s;
 	int ret = 0;
 
 	HDMI_PLUG_FUNC();
@@ -1179,25 +1183,6 @@ int hdmi_internal_power_on(void)
 	init_timer(&r_hdmi_timer);
 	add_timer(&r_hdmi_timer);
 
-	if (hdmi_5vpower == 0) {
-		TX_DEF_LOG("Enable 5v power high\n");
-		p = devm_pinctrl_get(&hdmi_pdev->dev);
-		if (IS_ERR(p)) {
-			TX_DEF_LOG("devm_pinctrl_get 5vhigh fail!!\n");
-		}
-		if (p != NULL){
-			s = pinctrl_lookup_state(p, "5vhigh");
-			if (IS_ERR(s)) {
-				TX_DEF_LOG("pinctrl_lookup_state 5vhigh fail!!\n");
-			} else {
-				ret = pinctrl_select_state(p, s);
-				if (ret < 0) {
-					TX_DEF_LOG("pinctrl_select_state 5vhigh fail!!\n");
-				}
-			}
-		}
-		hdmi_5vpower = 1;
-	}
 	if (request_irq(hdmi_irq, hdmi_irq_handler, IRQF_TRIGGER_HIGH, "hdmiirq", NULL) < 0)
 		TX_DEF_LOG("request hdmi interrupt failed.\n");
 	else
@@ -1234,10 +1219,6 @@ void vReadHdcpVersion(void)
 
 void hdmi_internal_power_off(void)
 {
-	struct pinctrl *p;
-	struct pinctrl_state *s;
-	int ret = 0;
-
 	HDMI_PLUG_FUNC();
 
 	HDMI_DRV_LOG("[hdmi]hdmi_internal_power_off\n");
@@ -1257,6 +1238,7 @@ void hdmi_internal_power_off(void)
 
 	hdmi_hotplugstate = HDMI_STATE_HOT_PLUG_OUT;
 	vSetSharedInfo(SI_HDMI_RECEIVER_STATUS, HDMI_PLUG_OUT);
+	vPlugDetectService(HDMI_STATE_POWER_OFF_HOT_PLUG_OUT);
 
 	free_irq(hdmi_irq, NULL);
 	TX_DEF_LOG("Free hdmi interrupt\n");
@@ -1291,25 +1273,6 @@ void hdmi_internal_power_off(void)
 	/*vCec_poweron_32k(); */
 	hdmistate_debug = 0xfff;
 
-	if (hdmi_5vpower == 1) {
-		TX_DEF_LOG("disable 5v power low\n");
-		p = devm_pinctrl_get(&hdmi_pdev->dev);
-          	if (IS_ERR(p)) {
-			TX_DEF_LOG("devm_pinctrl_get 5vlow fail!!\n");
-		}
-		if (p != NULL){
-			s = pinctrl_lookup_state(p, "5vlow");
-			if (IS_ERR(s)) {
-				TX_DEF_LOG("pinctrl_lookup_state 5vlow fail!!\n");
-			} else {
-				ret = pinctrl_select_state(p, s);
-				if (ret < 0) {
-					TX_DEF_LOG("pinctrl_select_state 5vlow fail!!\n");
-				}
-			}
-		}
-		hdmi_5vpower = 0;
-	}
 	mdelay(500);
 	if (hdmi_hdmi_on == 1) {
 		TX_DEF_LOG("[clock]hdmitx clock Power Off\n");
@@ -1598,22 +1561,13 @@ static int hdmi_event_notifier_callback(struct notifier_block *self,
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
 	case FB_BLANK_NORMAL:
-		printk("hdmi_late_resume \n");
 		display_off = 0;
-		/*hdmi_internal_power_on();*/
-		if(hdmi_suspend_en)
-			hdmi_internal_power_on();
 		break;
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
 		break;
 	case FB_BLANK_POWERDOWN:
-		printk("hdmi_early_suspend %d\n", hdmi_suspend_en);
 		display_off = 1;
-		/*hdmi_internal_power_off();*/
-		if(hdmi_suspend_en) {
-			hdmi_internal_power_off();
-		}
 		break;
 	default:
 		return -EINVAL;
@@ -1939,25 +1893,29 @@ void hdmi_timer_impl(void)
 	hdmi_hdcp22_monitor();
 	hdmi_timing_monitor();
 
-	if (hdmi_hdmiCmd == HDMI_PLUG_DETECT_CMD) {
-		vClearHdmiCmd();
+	if (hdmi_hdmiCmd[HDMI_PLUG_DETECT_CMD] == HDMI_PLUG_DETECT_CMD) {
+		vClearHdmiCmd(HDMI_PLUG_DETECT_CMD);
 		/* vcheckhdmiplugstate(); */
 		/* vPlugDetectService(e_hdmi_ctrl_state); */
-	} else if ((hdmi_hdmiCmd == HDMI_HDCP_PROTOCAL_CMD)
+	}
+	if ((hdmi_hdmiCmd[HDMI_HDCP_PROTOCAL_CMD] == HDMI_HDCP_PROTOCAL_CMD)
 		   && (hdmi_hotplugstate == HDMI_STATE_HOT_PLUGIN_AND_POWER_ON)) {
-		vClearHdmiCmd();
+		vClearHdmiCmd(HDMI_HDCP_PROTOCAL_CMD);
 		HdcpService(e_hdcp_ctrl_state);
 		if (resolution_change == true && e_hdcp_ctrl_state == HDCP2x_ENCRYPTION) {
 			resolution_change = FALSE;
 			hdmi_util.state_callback(HDMI_STATE_CHANGE_RESOLUTION);
 		}
-	} else if ((hdmi_hdmiCmd == HDMI_HDR10_DELAY_OFF_CMD)
+	}
+	if ((hdmi_hdmiCmd[HDMI_HDR10_DELAY_OFF_CMD] == HDMI_HDR10_DELAY_OFF_CMD)
 		   && (hdmi_hotplugstate == HDMI_STATE_HOT_PLUGIN_AND_POWER_ON)) {
-		vClearHdmiCmd();
+		vClearHdmiCmd(HDMI_HDR10_DELAY_OFF_CMD);
 		Hdr10DelayOffHandler();
-	} else if ((hdmi_hdmiCmd == HDMI_HDR10P_VSIF_DELAY_OFF_CMD)
+	}
+	if ((hdmi_hdmiCmd[HDMI_HDR10P_VSIF_DELAY_OFF_CMD] ==
+		HDMI_HDR10P_VSIF_DELAY_OFF_CMD)
 		   && (hdmi_hotplugstate == HDMI_STATE_HOT_PLUGIN_AND_POWER_ON)) {
-		vClearHdmiCmd();
+		vClearHdmiCmd(HDMI_HDR10P_VSIF_DELAY_OFF_CMD);
 		Hdr10pVsifDelayOffHandler();
 	}
 
@@ -2455,7 +2413,6 @@ int hdmi_internal_probe(struct platform_device *pdev, unsigned long u8Res)
 		hdmi_clock_enable(true);
 	}
 
-	hdmi_5vpower = 1;
 	hdmi_is_boot_time = 1;
 	hdmi_timing_monitor_stop();
 	atomic_set(&hdmi_irq_event, 1);
@@ -2505,6 +2462,21 @@ void hdmi_show_hdcp_information(void)
 		_u2TxBStatus, _fgRepeater);
 }
 
+int hdmi_suspend_mode(unsigned int uilmode)
+{
+	TX_DEF_LOG("hdmi_suspend_mode\n");
+
+	if (uilmode == HDMI_EARLY_SUSPEND_MODE_POWER_OFF)
+		hdmi_suspend_en = TRUE;
+	else
+		hdmi_suspend_en = FALSE;
+
+	disp_hw_mgr_send_event(DISP_EVENT_LOW_ENERGY_DOZING_MODE,
+		(void *)&uilmode);
+
+	return 0;
+}
+
 const HDMI_DRIVER *HDMI_GetDriver(void)
 {
 	static const HDMI_DRIVER HDMI_DRV = {
@@ -2552,6 +2524,7 @@ const HDMI_DRIVER *HDMI_GetDriver(void)
 		.checkedidheader = hdmi_check_edid_header,
 		.gethdmistatus = hdmi_check_status,
 		.hdcp_info = hdmi_hdcp_information,
+		.setsuspendmode = hdmi_suspend_mode,
 	};
 
 	return &HDMI_DRV;

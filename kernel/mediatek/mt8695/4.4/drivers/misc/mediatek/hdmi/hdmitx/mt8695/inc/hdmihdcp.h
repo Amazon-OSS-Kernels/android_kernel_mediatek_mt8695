@@ -226,7 +226,7 @@ extern unsigned char _bHdcpOff;
 #define REVOCATION_IS_CHK      (1<<2)
 
 extern bool _fgWifiHdcpErr;
-extern unsigned char hdmi_hdmiCmd;
+extern unsigned char hdmi_hdmiCmd[MAX_HDMI_TMR_NUMBER];
 extern HDCP_CTRL_STATE_T e_hdcp_ctrl_state;
 extern HDCP_CTRL_STATE_T e_hdcp_ctrl_state;
 extern unsigned int _u4SinkProductID;
@@ -244,7 +244,7 @@ extern void HdcpService(HDCP_CTRL_STATE_T e_hdcp_state);
 extern unsigned int i4SharedInfo(unsigned int u4Index);
 extern void vSetSharedInfo(unsigned int u4Index, unsigned int i4Value);
 extern void vSendHdmiCmd(unsigned char u1icmd);
-extern void vClearHdmiCmd(void);
+extern void vClearHdmiCmd(unsigned char u1icmd);
 extern void vSetHDCPState(HDCP_CTRL_STATE_T e_state);
 extern unsigned char bReadHdmiIntMask(void);
 extern void vMoveHDCPInternalKey(HDMI_HDCP_KEY_T key);

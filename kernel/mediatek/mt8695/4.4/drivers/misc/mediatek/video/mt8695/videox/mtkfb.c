@@ -44,6 +44,7 @@
 #include "disp_clk.h"
 #include "smi.h"
 #include "disp_assert_layer.h"
+#include "hdmictrl.h"
 
 #include <linux/memblock.h>
 #include <linux/bootmem.h>
@@ -55,8 +56,6 @@
 #include <linux/pfn.h>
 #include <linux/page_ext.h>
 #include <linux/kernel.h>
-
-#undef CONFIG_PM
 
 struct fb_info *mtkfb_fbi;
 
@@ -459,10 +458,20 @@ static void mtkfb_blank_suspend(struct fb_info *info)
 {
 	int ret = 0;
 	struct mtkfb_device *mtkfb_dev = NULL;
+	bool low_energy_dozing_mode_enable = disp_hw_mgr_get_dozing_mode();
+	HDMI_DRIVER *hdmitxdev = NULL;
 
 	mtkfb_dev = (struct mtkfb_device *)info->par;
 	MTKFB_LOG("enter early_suspend\n");
-	
+
+	if (low_energy_dozing_mode_enable || is_boot_time) {
+		MTKFB_LOG("black screen when suspend %d %d\n",
+			low_energy_dozing_mode_enable, is_boot_time);
+		return;
+	}
+	hdmitxdev = (HDMI_DRIVER *) HDMI_GetDriver();
+	if (hdmitxdev != NULL)
+		hdmitxdev->power_off();
 	ret = disp_hw_mgr_suspend();
 	if (ret < 0) {
 		MTKFB_ERR("suspend failed\n");
@@ -480,6 +489,14 @@ static void mtkfb_blank_resume(struct fb_info *info)
 {
 	int ret = 0;
 	struct mtkfb_device *mtkfb_dev = NULL;
+	bool low_energy_dozing_mode_enable = disp_hw_mgr_get_dozing_mode();
+	HDMI_DRIVER *hdmitxdev = NULL;
+
+	if (low_energy_dozing_mode_enable || is_boot_time) {
+		MTKFB_LOG("do nothing when resume %d %d\n",
+			low_energy_dozing_mode_enable, is_boot_time);
+		return;
+	}
 
 	mtkfb_dev = (struct mtkfb_device *)info->par;
 	MTKFB_LOG("enter late_resume\n");
@@ -493,6 +510,10 @@ static void mtkfb_blank_resume(struct fb_info *info)
 		MTKFB_ERR("primary display resume failed\n");
 		return;
 	}
+
+	hdmitxdev = (HDMI_DRIVER *) HDMI_GetDriver();
+	if (hdmitxdev != NULL)
+		hdmitxdev->power_on();
 
 	MTKFB_LOG("leave late_resume\n");
 }

@@ -740,6 +740,8 @@
 		mtk_stc:mtk_stc@11221750 {
 			compatible = "mediatek,mt8695-stc";
 			reg = <0 0x11221750 0 0x40>;
+			clocks = <&topckgen CLK_TOP_OSDPLL>;
+			clock-names = "osdpll";
 		};
 
 		mmc0: mmc@11230000 {

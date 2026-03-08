@@ -41,6 +41,8 @@
 #include "hdmiedid.h"
 #endif
 
+bool is_boot_time = true;
+
 static struct disp_hw_manager disp_hw_mgr = {
 	.irq_num = 0,
 	.sequence.init = {
@@ -441,14 +443,7 @@ static int _disp_event_callback(enum DISP_EVENT event, void *data)
 	switch (event) {
 	case DISP_EVENT_CHANGE_RES:
 		res_mode = *(HDMI_VIDEO_RESOLUTION *)data;
-	#if (0)
-		if (res_mode == mgr->common_info.resolution->res_mode) {
-		#ifdef CONFIG_MTK_INTERNAL_HDMI_SUPPORT
-			_get_hdmi_cap(&mgr->common_info.tv);
-		#endif
-			break;
-		}
-	#endif
+		is_boot_time = false;
 
 		resolution = _get_resolution(res_mode);
 		if (resolution != NULL) {
@@ -482,6 +477,13 @@ static int _disp_event_callback(enum DISP_EVENT event, void *data)
 		_get_hdmi_cap(&mgr->common_info.tv);
 		disp_hw_mgr_get_info(&disp_common_info);
 		disp_osd_get_drv()->drv_call(DISP_CMD_HDMITX_PLUG_IN, NULL);
+		break;
+
+	case DISP_EVENT_LOW_ENERGY_DOZING_MODE:
+		disp_hw_mgr.common_info.low_energy_dozing_mode_enable
+			= *(bool *)data;
+		DISP_LOG_I("%s low_energy_dozing_mode_enable:%d.\n", __func__,
+			disp_hw_mgr.common_info.low_energy_dozing_mode_enable);
 		break;
 
 	default:
@@ -1071,6 +1073,14 @@ int disp_hw_mgr_resume(void)
 	atomic_set(&mgr->status, DISP_STATUS_RESUME);
 
 	return ret;
+}
+
+bool disp_hw_mgr_get_dozing_mode(void)
+{
+	bool low_energy_dozing_mode_enable =
+		disp_hw_mgr.common_info.low_energy_dozing_mode_enable;
+
+	return low_energy_dozing_mode_enable;
 }
 
 int disp_hw_mgr_suspend(void)

@@ -913,6 +913,7 @@ enum HDMI_CAPABILITY {
 #define MTK_HDMI_CEC_OPTION_SYSTEM_CONTROL      HDMI_IOWR(39, int)
 #define MTK_HDMI_HDCP_AUTH_STATUS               HDMI_IOWR(40, int)
 #define MTK_HDMI_HPD_ONOFF                      HDMI_IOWR(41, int)
+#define MTK_HDMI_SUSPEND_MODE                   HDMI_IOWR(43, unsigned int)
 
 
 #define fgIsHDRes(u1Res) ((u1Res == HDMI_VIDEO_1280x720p_60Hz) || (u1Res == HDMI_VIDEO_1280x720p_50Hz) || \
@@ -1128,6 +1129,7 @@ typedef enum {
 #define COMPAT_MTK_HDMI_GET_CECSTS                     HDMI_IOWR(29, COMPAT_APK_CEC_ACK_INFO)
 #define COMPAT_MTK_HDMI_CEC_USR_CMD                    HDMI_IOWR(30, CEC_USR_CMD_T)
 #define COMPAT_MTK_HDMI_HDR_ENABLE                     HDMI_IOWR(32, HDMI_FORCE_HDR_ENABLE)
+
 
 #endif
 
