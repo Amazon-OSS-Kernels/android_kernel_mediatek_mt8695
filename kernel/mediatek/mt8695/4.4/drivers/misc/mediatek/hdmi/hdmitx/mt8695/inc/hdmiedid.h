@@ -91,7 +91,7 @@ typedef struct _HDMI_SINK_AV_CAP_T {
 	unsigned int ui4_sink_native_pal_resolution;	/* use HDMI_SINK_VIDEO_RES_T */
 	unsigned short ui2_sink_colorimetry;	/* use HDMI_SINK_VIDEO_COLORIMETRY_T */
 	unsigned short ui2_sink_vcdb_data;	/* use HDMI_SINK_VCDB_T */
-	unsigned short ui2_sink_aud_dec;	/* HDMI_SINK_AUDIO_DECODER_T */
+	unsigned short ui4_sink_aud_dec;	/* HDMI_SINK_AUDIO_DECODER_T */
 	unsigned char ui1_sink_dsd_ch_num;
 	unsigned char ui1_sink_pcm_ch_sampling[7];
 	/* n: channel number index, value: each bit means sampling rate for this channel number (SINK_AUDIO_32k..) */
@@ -118,8 +118,11 @@ typedef struct _HDMI_SINK_AV_CAP_T {
 	unsigned char ui1_sink_dolby_plus_ch_sampling[7];
 	unsigned char ui1_sink_dts_hd_ch_sampling[7];
 	unsigned char ui1_sink_mat_mlp_ch_sampling[7];
+	unsigned char ui1_sink_mpegh_ch_sampling[7];
 	unsigned char ui1_sink_wma_ch_sampling[7];
 	unsigned char ui1_sink_support_dolby_atoms;
+	unsigned char ui1_sink_support_mpegh_profile;
+	unsigned char ui1_sink_support_mpegh_level;
 	unsigned char ui1_sink_dolby_atmos_ch_sampling[7];
 	unsigned short ui1_sink_max_tmds_clock;
 	unsigned char ui1_sink_spk_allocation;

@@ -111,9 +111,20 @@ static void init_stc_hw(void)
 	pr_debug("[%s] STC start...\n", __func__);
 }
 
-static int stop_stc(int id)
+static int stop_stc(unsigned int id)
 {
 	unsigned int RegValue;
+
+	if (id > DMX_STC_NS - 1) {
+		pr_notice("[STC] Stc_id %u is invalid in %s. Valid range is 0 to %u\n",
+			id, __func__, DMX_STC_NS - 1);
+		return -1;
+	}
+
+	if (!stc_id_using[id]) {
+		pr_notice("[STC] Stc_id %u is not in use in %s\n", id, __func__);
+		return -1;
+	}
 
 	RegValue = ioread32((stc_reg_base + STC_SYSTOP_CONFIG));
 	if (id == 0)
@@ -121,7 +132,7 @@ static int stop_stc(int id)
 	else if (id == 1)
 		RegValue |= STC_CFG_HOLD_2_BIT;
 	else {
-		pr_notice("[STC] Wrong stc id: %d in %s\n", id, __func__);
+		pr_notice("[STC] Wrong stc id: %u in %s\n", id, __func__);
 		return -1;
 	}
 
@@ -130,9 +141,20 @@ static int stop_stc(int id)
 	return 0;
 }
 
-static int start_stc(int id)
+static int start_stc(unsigned int id)
 {
 	unsigned int RegValue;
+
+	if (id > DMX_STC_NS - 1) {
+		pr_notice("[STC] Stc_id %u is invalid in %s. Valid range is 0 to %u\n",
+			id, __func__, DMX_STC_NS - 1);
+		return -1;
+	}
+
+	if (!stc_id_using[id]) {
+		pr_notice("[STC] Stc_id %u is not in use in %s\n", id, __func__);
+		return -1;
+	}
 
 	RegValue = ioread32((stc_reg_base + STC_SYSTOP_CONFIG));
 	if (id == 0)
@@ -140,7 +162,7 @@ static int start_stc(int id)
 	else if (id == 1)
 		RegValue &= (~STC_CFG_HOLD_2_BIT);
 	else {
-		pr_notice("[STC] Wrong stc id: %d in %s\n", id, __func__);
+		pr_notice("[STC] Wrong stc id: %u in %s\n", id, __func__);
 		return -1;
 	}
 
@@ -153,6 +175,17 @@ static int get_stc(struct mtk_stc_info *info)
 {
 	unsigned int StcL = 0;
 	int64_t StcH = 0;
+
+	if (info->stc_id > DMX_STC_NS - 1) {
+		pr_notice("[STC] Stc id %d is invalid in %s. Valid range is 0 to %d.\n",
+			info->stc_id, __func__, DMX_STC_NS - 1);
+		return -1;
+	}
+
+	if (!stc_id_using[info->stc_id]) {
+		pr_notice("[STC] Stc id %d is not in use in %s\n", info->stc_id, __func__);
+		return -1;
+	}
 
 	if (info->stc_id == 0) {
 		StcH = ioread32((stc_reg_base + STC_SYSTOP1_VALUE_HIGH));
@@ -226,6 +259,17 @@ static int set_stc(struct mtk_stc_info *info)
 	int32_t StcH = (info->stc_value >> 32) & STC_HIGH_VALUE_MASK;
 
 	pr_info("set_stc %lld \n",info->stc_value);
+
+	if (info->stc_id > DMX_STC_NS - 1) {
+		pr_notice("[STC] Stc id %d is invalid in %s. Valid range is 0 to %d.\n",
+			info->stc_id, __func__, DMX_STC_NS - 1);
+		return -1;
+	}
+
+	if (!stc_id_using[info->stc_id]) {
+		pr_notice("[STC] Stc id %d is not in use in %s\n", info->stc_id, __func__);
+		return -1;
+	}
 
 	if (info->stc_value < 0)
 		StcH |= (1 << 16);

@@ -14,6 +14,7 @@
 
 #include <linux/workqueue.h>
 #include <linux/vmalloc.h>
+#include <linux/kthread.h>
 
 #include "disp_hdr_def.h"
 #include "disp_hdr_core.h"
@@ -32,7 +33,12 @@
 #include "fmt_hal.h"
 #include <linux/mutex.h>
 
-
+/* for hdr thread wake up */
+static struct task_struct *disp_hdr_thread;
+static wait_queue_head_t disp_hdr_wq;
+static atomic_t gWakeupHdrSwThread;
+static int _hdr_core_routine_handle(void *data);
+struct mutex sync_lock_for_hdr_update_register;
 
 static struct workqueue_struct *gHandleHdrClockPathThred;
 static struct workqueue_struct *gHdrThread[HDR_PATH_MAX] = {NULL};
@@ -75,7 +81,7 @@ It uses mutex to make sure display configure and stop work independendly.
 */
 
 struct mutex sync_lock_for_disp_configure_and_stop;
-spinlock_t irq_lock;
+
 
 /*hdr2sdr bt2020 & sdr2hdr clock manager*/
 static bool clockFlag[HDR_CLOCK_MODULE_MAX] = {0};
@@ -616,7 +622,7 @@ enum HDR_STATUS hdr_core_write_rgb2yuv_ext_register(int plane,
 ** 10	SMPTE ST428
 ** 11	SMPTE RP 431
 ** 12	SMPTE EG 432
-** 13 ¨C 21	Reserved
+** 13-21	Reserved
 ** 22	EBU 3213
 ** 23-255	Reserved
 */
@@ -742,7 +748,7 @@ enum HDR_PATH_ENUM _hdr_core_get_hdr_path(const struct mtk_disp_buffer *pBuffer)
 ** 10	SMPTE ST428
 ** 11	SMPTE RP 431
 ** 12	SMPTE EG 432
-** 13 ¨C 21	Reserved
+** 13-21	Reserved
 ** 22	EBU 3213
 ** 23-255	Reserved
 */
@@ -1217,7 +1223,6 @@ static int _hdr_core_init(struct disp_hw_common_info *info)
 	gSubVideoCurrentPlayingState = false;
 	mutex_init(&sync_lock_for_sub_path);
 	mutex_init(&sync_lock_for_disp_configure_and_stop);
-	spin_lock_init(&irq_lock);
 	for (path = HDR_PATH_MAIN; path < HDR_PATH_MAX; path++)
 		gFirstConfigure[path] = true;
 
@@ -1254,6 +1259,13 @@ static int _hdr_core_init(struct disp_hw_common_info *info)
 #endif
 #endif
 	current_resolution = info->resolution->res_mode;
+	init_waitqueue_head(&disp_hdr_wq);
+	atomic_set(&gWakeupHdrSwThread, 0);
+	disp_hdr_thread =
+		kthread_create(_hdr_core_routine_handle, NULL, "disp_hdr");
+	wake_up_process(disp_hdr_thread);
+	mutex_init(&sync_lock_for_hdr_update_register);
+
 	return 0;
 }
 
@@ -1593,6 +1605,7 @@ void hdr_core_handle_clock_path(struct work_struct *pWorkItem)
 
 	/*free pConfig memory because of configuring and stopping hdr2sdr module which once malloc memory*/
 	vfree(pConfig);
+	pConfig = NULL;
 	HDR_LOG("free pConfig success\n");
 }
 
@@ -1887,7 +1900,9 @@ void hdr_core_config_path(struct config_info_struct *pConfig)
 				pConfig->BT2020Config.need_update,
 				pConfig->SDR2HDRConfig.need_update,
 				pConfig->HDR2SDRConfig.need_update);
+			mutex_lock(&sync_lock_for_hdr_update_register);
 			list_add_tail(&pConfig->listEntry, &gConfigListHead[HDR_PATH_MAIN]);
+			mutex_unlock(&sync_lock_for_hdr_update_register);
 		}
 	} while (0);
 
@@ -2076,67 +2091,75 @@ int _hdr_core_handle_disp_config(struct mtk_disp_buffer *pConfig, struct disp_hw
 	return 0;
 }
 
-
-
-/* update hdr setting */
 static int _hdr_core_handle_irq(uint32_t irq)
 {
-	struct config_info_struct *pConfig = NULL;
-	struct config_info_struct *pTempConfig = NULL;
-	enum HDR_STATUS status;
-	int plane;
-	/* if had configured bt2020, disp video out needs to ot need to select bt2020 video out */
-	bool bt2020_need_update = false;
-	unsigned long flags;
-
 	if (irq != DISP_IRQ_FMT_VSYNC)
 		return 0;
 
 	/* HDR module is not ready, don't handle IRQ */
 	if (gConfigListHeadInit == false)
 		return 0;
-	/*
-	 * under very special circumstances,
-	 * when the first vsync arrives, pConfig is not yet
-	 * fully processed, then the second vysnc comes, it will
-	 * result in pConfig being NULL.
-	 */
-	spin_lock_irqsave(&irq_lock, flags);
-	/*  update setting to register. */
-	list_for_each_entry_safe(pConfig, pTempConfig, &gConfigListHead[HDR_PATH_MAIN], listEntry) {
-		HDR_LOG("write HDR path: %d\n", pConfig->path);
-		/* write bt2020 */
-		if (hdr_device_map_bt2020_plane_from_path(pConfig->path, &plane)) {
-			status = bt2020_update(plane, pConfig);
-			if (status != HDR_STATUS_OK)
-				break;
-			bt2020_need_update = true;
-		}
 
-		/* write sdr2hdr */
-		if (hdr_device_map_sdr2hdr_plane_from_path(pConfig->path, &plane)) {
-			status = sdr2hdr_update(plane, pConfig);
-			if (status != HDR_STATUS_OK)
-				break;
-		}
+	atomic_set(&gWakeupHdrSwThread, 1);
+	wake_up(&disp_hdr_wq);
 
-		/* write hdr2sdr */
-		if (hdr_device_map_hdr2sdr_plane_from_path(pConfig->path, &plane)) {
-			status = hdr2sdr_update(plane, pConfig, bt2020_need_update);
-			if (status != HDR_STATUS_OK)
-				break;
-		}
+	return 0;
+}
 
-		do {
-			/* Config HDR clock and path */
-			HDR_LOG("config hdr path and clock\n");
-			INIT_WORK(&pConfig->workItem, hdr_core_handle_clock_path);
-			queue_work(gHandleHdrClockPathThred, &pConfig->workItem);
-		} while (0);
 
-		list_del_init(&pConfig->listEntry);
+/* update hdr setting */
+static int _hdr_core_routine_handle(void *data)
+{
+	struct config_info_struct *pConfig = NULL;
+	struct config_info_struct *pTempConfig = NULL;
+	enum HDR_STATUS status = HDR_STATUS_OK;
+	int plane = BT2020_PLANE_MAX;
+	/* if had configured bt2020, disp video out needs to ot need to select bt2020 video out */
+	bool bt2020_need_update = false;
+	int ret = 0;
+
+	while (!kthread_should_stop()) {
+		ret = wait_event_interruptible(disp_hdr_wq, atomic_read(&gWakeupHdrSwThread));
+		if (ret < 0) {
+			HDR_LOG("hdr continue to wait event\n");
+			continue;
 		}
-	spin_unlock_irqrestore(&irq_lock, flags);
+		atomic_set(&gWakeupHdrSwThread, 0);
+		mutex_lock(&sync_lock_for_hdr_update_register);
+		/*  update setting to register. */
+		list_for_each_entry_safe(pConfig, pTempConfig, &gConfigListHead[HDR_PATH_MAIN], listEntry) {
+			HDR_LOG("write HDR path: %d\n", pConfig->path);
+			/* write bt2020 */
+			if (hdr_device_map_bt2020_plane_from_path(pConfig->path, &plane)) {
+				status = bt2020_update(plane, pConfig);
+				if (status != HDR_STATUS_OK)
+					break;
+				bt2020_need_update = true;
+			}
+
+			/* write sdr2hdr */
+			if (hdr_device_map_sdr2hdr_plane_from_path(pConfig->path, &plane)) {
+				status = sdr2hdr_update(plane, pConfig);
+				if (status != HDR_STATUS_OK)
+					break;
+			}
+
+			/* write hdr2sdr */
+			if (hdr_device_map_hdr2sdr_plane_from_path(pConfig->path, &plane)) {
+				status = hdr2sdr_update(plane, pConfig, bt2020_need_update);
+				if (status != HDR_STATUS_OK)
+					break;
+			}
+			list_del_init(&pConfig->listEntry);
+			do {
+				/* Config HDR clock and path */
+				HDR_LOG("config hdr path and clock\n");
+				INIT_WORK(&pConfig->workItem, hdr_core_handle_clock_path);
+				queue_work(gHandleHdrClockPathThred, &pConfig->workItem);
+			} while (0);
+		}
+		mutex_unlock(&sync_lock_for_hdr_update_register);
+	}
 	return 0;
 }
 

@@ -60,6 +60,16 @@ country DE: DFS-ETSI
 	# 60 GHz band channels 1-4 (ETSI EN 302 567)
 	# (57000 - 66000 @ 2160), (40)
 
+country IE: DFS-ETSI
+        (2402 - 2482 @ 40), (20)
+        (5170 - 5250 @ 80), (20), NO-OUTDOOR, AUTO-BW
+        (5250 - 5330 @ 80), (20), NO-OUTDOOR, DFS, AUTO-BW
+        (5490 - 5710 @ 160), (27), DFS
+        # short range devices (ETSI EN 300 440-1)
+        (5735 - 5835 @ 80), (14)
+        # 60 GHz band channels 1-4 (ETSI EN 302 567)
+        # (57000 - 66000 @ 2160), (40)
+
 country ES: DFS-ETSI
 	(2402 - 2482 @ 40), (20)
 	(5170 - 5250 @ 80), (20), NO-OUTDOOR, AUTO-BW

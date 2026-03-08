@@ -26,6 +26,8 @@
 #include "mmc_ops.h"
 #include "sd_ops.h"
 
+#define MAX_STR_LEN 50
+
 static const unsigned int tran_exp[] = {
 	10000,		100000,		1000000,	10000000,
 	0,		0,		0,		0
@@ -43,6 +45,11 @@ static const unsigned int tacc_exp[] = {
 static const unsigned int tacc_mant[] = {
 	0,	10,	12,	13,	15,	20,	25,	30,
 	35,	40,	45,	50,	55,	60,	70,	80,
+};
+
+static char *disable_discard_list[MAX_STR_LEN] = {
+	"008GB1",
+	NULL
 };
 
 #define UNSTUFF_BITS(resp,start,size)					\
@@ -842,6 +849,23 @@ static ssize_t mmc_pre_eol_info_show(struct device *dev,
 
 static DEVICE_ATTR(pre_eol_info, S_IRUGO, mmc_pre_eol_info_show, NULL);
 
+static ssize_t disable_discard_show(struct device *dev,
+				    struct device_attribute *attr,
+				    char *buf)
+{
+	struct mmc_card *card = mmc_dev_to_card(dev);
+	char **discard_mmc = disable_discard_list;
+	int should_disable_discard = 0;
+
+	while (*discard_mmc) {
+		if (!strncmp(card->cid.prod_name, *discard_mmc++, strlen(card->cid.prod_name)))
+			should_disable_discard = 1;
+	}
+
+	return sprintf(buf, "%d\n", should_disable_discard);
+}
+static DEVICE_ATTR_RO(disable_discard);
+
 static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_cid.attr,
 	&dev_attr_csd.attr,
@@ -863,6 +887,7 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_enhanced_area_size.attr,
 	&dev_attr_raw_rpmb_size_mult.attr,
 	&dev_attr_rel_sectors.attr,
+	&dev_attr_disable_discard.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(mmc_std);

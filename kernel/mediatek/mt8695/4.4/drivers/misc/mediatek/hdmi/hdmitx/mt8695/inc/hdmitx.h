@@ -436,8 +436,10 @@ typedef enum {
 	AVD_DTS_HD,
 	AVD_MAT_MLP,
 	AVD_DST,
-	AVD_DOLBY_ATMOS,
 	AVD_WMA,
+	AVD_EXT, /* 0xF */
+	AVD_MPEGH,
+	AVD_DOLBY_ATMOS,
 	AVD_CDDA,
 	AVD_SACD_PCM,
 	AVD_HDCD = 0xfe,
@@ -581,8 +583,10 @@ typedef enum {
 #define   HDMI_SINK_AUDIO_DEC_DTS_HD      (1<<10)
 #define   HDMI_SINK_AUDIO_DEC_MAT_MLP     (1<<11)
 #define   HDMI_SINK_AUDIO_DEC_DST         (1<<12)
-#define   HDMI_SINK_AUDIO_DEC_ATMOS       (1<<13)
-#define   HDMI_SINK_AUDIO_DEC_WMA         (1<<14)
+#define   HDMI_SINK_AUDIO_DEC_WMA         (1<<13)
+#define   HDMI_SINK_AUDIO_DEC_EXT         (1<<14)
+#define   HDMI_SINK_AUDIO_DEC_EXT_MPEGH   (1<<15)
+#define   HDMI_SINK_AUDIO_DEC_ATMOS       (1<<16)
 
 
 /* Sink audio channel ability for a fixed Fs */
@@ -681,7 +685,7 @@ typedef struct _HDMI_EDID_T {
 	unsigned char ui1_sink_rgb_color_bit;	/* color bit for RGB */
 	unsigned char ui1_sink_ycbcr_color_bit;	/* color bit for YCbCr */
 	unsigned char ui1_sink_dc420_color_bit;
-	unsigned short ui2_sink_aud_dec;	/* use EDID_AUDIO_DECODER_T */
+	unsigned short ui4_sink_aud_dec;	/* use EDID_AUDIO_DECODER_T */
 	unsigned char ui1_sink_is_plug_in;	/* 1: Plug in 0:Plug Out */
 	unsigned int ui4_hdmi_pcm_ch_type;	/* use EDID_A_FMT_CH_TYPE */
 	unsigned int ui4_hdmi_pcm_ch3ch4ch5ch7_type;	/* use EDID_A_FMT_CH_TYPE1 */
@@ -697,10 +701,14 @@ typedef struct _HDMI_EDID_T {
 	unsigned int ui4_hdmi_atmos_joc_ch3ch4ch5ch7_type;
 	unsigned int ui4_hdmi_dolby_truehd_ch_type; /*dolby truehd*/
 	unsigned int ui4_hdmi_dolby_truehd_ch3ch4ch5ch7_type;
+	unsigned int ui4_hdmi_mpegh_ch_type; /* MPEG-H */
+	unsigned int ui4_hdmi_mpegh_ch3ch4ch5ch7_type;
 	unsigned int ui4_hdmi_pcm_bit_size;
 	unsigned int ui4_hdmi_pcm_ch3ch4ch5ch7_bit_size;
 	unsigned int ui4_dac_pcm_ch_type;	/* use EDID_A_FMT_CH_TYPE */
 	unsigned char ui1_sink_support_dolby_atoms;
+	unsigned char ui1_sink_support_mpegh_profile;
+	unsigned char ui1_sink_support_mpegh_level;
 	unsigned char ui1_sink_i_latency_present;
 	unsigned int ui1_sink_p_audio_latency;
 	unsigned int ui1_sink_p_video_latency;
@@ -977,7 +985,7 @@ struct COMPAT_HDMI_EDID_T {
 	unsigned char ui1_sink_rgb_color_bit;
 	unsigned char ui1_sink_ycbcr_color_bit;
 	unsigned char ui1_sink_dc420_color_bit;
-	unsigned short ui2_sink_aud_dec;
+	unsigned short ui4_sink_aud_dec;
 	unsigned char ui1_sink_is_plug_in;
 	compat_uint_t ui4_hdmi_pcm_ch_type;
 	compat_uint_t ui4_hdmi_pcm_ch3ch4ch5ch7_type;
@@ -993,10 +1001,14 @@ struct COMPAT_HDMI_EDID_T {
 	compat_uint_t ui4_hdmi_atmos_joc_ch3ch4ch5ch7_type;
 	compat_uint_t ui4_hdmi_dolby_truehd_ch_type; /*dolby truehd*/
 	compat_uint_t ui4_hdmi_dolby_truehd_ch3ch4ch5ch7_type;
+	unsigned int ui4_hdmi_mpegh_ch_type; /* MPEG-H */
+	unsigned int ui4_hdmi_mpegh_ch3ch4ch5ch7_type;
 	compat_uint_t ui4_hdmi_pcm_bit_size;
 	compat_uint_t ui4_hdmi_pcm_ch3ch4ch5ch7_bit_size;
 	compat_uint_t ui4_dac_pcm_ch_type;
 	unsigned char ui1_sink_support_dolby_atoms;
+	unsigned char ui1_sink_support_mpegh_profile;
+	unsigned char ui1_sink_support_mpegh_level;
 	unsigned char ui1_sink_i_latency_present;
 	compat_uint_t ui1_sink_p_audio_latency;
 	compat_uint_t ui1_sink_p_video_latency;

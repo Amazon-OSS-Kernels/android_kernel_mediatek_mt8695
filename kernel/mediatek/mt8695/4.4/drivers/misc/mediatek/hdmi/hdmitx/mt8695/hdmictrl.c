@@ -1405,8 +1405,13 @@ void vSetHDMIAudioIn(void)
 	vWriteHdmiGRLMsk(AIP_TXCTRL, 0, DSD_MUTE_DATA | LAYOUT1);
 
 	if (_stAvdAVInfo.e_hdmi_aud_in == SV_I2S) {
-
-		if (_stAvdAVInfo.e_aud_code == AVD_DSD) {
+		if ((((_stAvdAVInfo.e_aud_code == AVD_DTS_HD) ||
+			(_stAvdAVInfo.e_aud_code == AVD_MPEGH)) &&
+			((_stAvdAVInfo.bhdmiLChstatus[3] & 0xF) == 0x9)) ||
+			(_stAvdAVInfo.e_aud_code == AVD_MAT_MLP)) {
+			vSetHdmiI2SDataFmt(_stAvdAVInfo.e_I2sFmt);
+			vSetHdmiHbrConfig(TRUE);
+		} else if (_stAvdAVInfo.e_aud_code == AVD_DSD) {
 			vSetHdmiDsdConfig(_stAvdAVInfo.ui1_aud_out_ch_number, 0);
 			vSetHdmiI2SChNum(_stAvdAVInfo.ui1_aud_out_ch_number, 1);
 		} else {
@@ -2624,6 +2629,14 @@ void vSendAudioInfoFrame(void)
 	if (_stAvdAVInfo.e_hdmi_aud_in == SV_SPDIF) {
 		_bAudInfoFm[0] = 0x00;	/* CC as 0, */
 		_bAudInfoFm[3] = 0x00;	/* CA 2ch */
+	} else if ((_stAvdAVInfo.e_aud_code != AVD_LPCM) &&
+		(_stAvdAVInfo.e_aud_code != AVD_DSD) &&
+		(_stAvdAVInfo.e_aud_code != AVD_CDDA) &&
+		(_stAvdAVInfo.e_aud_code != AVD_SACD_PCM) &&
+		(_stAvdAVInfo.e_aud_code != AVD_HDCD)) {
+		/* set refer to header for codec raw data*/
+		_bAudInfoFm[0] = 0x00;
+		_bAudInfoFm[3] = 0x00;
 	} else {		/* pcm */
 
 		switch (_stAvdAVInfo.ui2_aud_out_ch.word & 0x7fb) {
