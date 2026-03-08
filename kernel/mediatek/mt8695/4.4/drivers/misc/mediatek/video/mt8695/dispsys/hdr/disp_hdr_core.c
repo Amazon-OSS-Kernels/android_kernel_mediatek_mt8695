@@ -43,7 +43,7 @@ struct mutex sync_lock_for_hdr_update_register;
 static struct workqueue_struct *gHandleHdrClockPathThred;
 static struct workqueue_struct *gHdrThread[HDR_PATH_MAX] = {NULL};
 static struct list_head gConfigListHead[HDR_PATH_MAX] = { {0} };
-static bool gConfigListHeadInit; /* check if HDR module ready to use */
+static bool gHDRInitDone; /* check if HDR module ready to use */
 
 static struct HDR_BUFFER_INFO gDispBufferInfo[HDR_PATH_MAX]; /* store last frame buffer info */
 static struct disp_hw_tv_capbility gTVInfo[HDR_PATH_MAX]; /* store last frame tv info */
@@ -1205,7 +1205,6 @@ static int _hdr_core_init(struct disp_hw_common_info *info)
 
 	for (i = 0; i < HDR_PATH_MAX; i++)
 		INIT_LIST_HEAD(&gConfigListHead[i]);
-	gConfigListHeadInit = true;
 
 	osd_enable_sdr2hdr = false;
 	gOsdHadConfigure = false;
@@ -1265,6 +1264,7 @@ static int _hdr_core_init(struct disp_hw_common_info *info)
 		kthread_create(_hdr_core_routine_handle, NULL, "disp_hdr");
 	wake_up_process(disp_hdr_thread);
 	mutex_init(&sync_lock_for_hdr_update_register);
+	gHDRInitDone = true;
 
 	return 0;
 }
@@ -2097,7 +2097,7 @@ static int _hdr_core_handle_irq(uint32_t irq)
 		return 0;
 
 	/* HDR module is not ready, don't handle IRQ */
-	if (gConfigListHeadInit == false)
+	if (gHDRInitDone == false)
 		return 0;
 
 	atomic_set(&gWakeupHdrSwThread, 1);
