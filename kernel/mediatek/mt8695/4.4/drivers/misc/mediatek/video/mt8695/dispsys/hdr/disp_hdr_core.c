@@ -73,6 +73,7 @@ It uses mutex to make sure display configure and stop work independendly.
 */
 
 struct mutex sync_lock_for_disp_configure_and_stop;
+spinlock_t irq_lock;
 
 /*hdr2sdr bt2020 & sdr2hdr clock manager*/
 static bool clockFlag[HDR_CLOCK_MODULE_MAX] = {0};
@@ -1216,6 +1217,7 @@ static int _hdr_core_init(struct disp_hw_common_info *info)
 	gSubVideoCurrentPlayingState = false;
 	mutex_init(&sync_lock_for_sub_path);
 	mutex_init(&sync_lock_for_disp_configure_and_stop);
+	spin_lock_init(&irq_lock);
 	for (path = HDR_PATH_MAIN; path < HDR_PATH_MAX; path++)
 		gFirstConfigure[path] = true;
 
@@ -2072,6 +2074,7 @@ static int _hdr_core_handle_irq(uint32_t irq)
 	int plane;
 	/* if had configured bt2020, disp video out needs to ot need to select bt2020 video out */
 	bool bt2020_need_update = false;
+	unsigned long flags;
 
 	if (irq != DISP_IRQ_FMT_VSYNC)
 		return 0;
@@ -2079,7 +2082,13 @@ static int _hdr_core_handle_irq(uint32_t irq)
 	/* HDR module is not ready, don't handle IRQ */
 	if (gConfigListHeadInit == false)
 		return 0;
-
+	/*
+	 * under very special circumstances,
+	 * when the first vsync arrives, pConfig is not yet
+	 * fully processed, then the second vysnc comes, it will
+	 * result in pConfig being NULL.
+	 */
+	spin_lock_irqsave(&irq_lock, flags);
 	/*  update setting to register. */
 	list_for_each_entry_safe(pConfig, pTempConfig, &gConfigListHead[HDR_PATH_MAIN], listEntry) {
 		HDR_LOG("write HDR path: %d\n", pConfig->path);
@@ -2114,7 +2123,7 @@ static int _hdr_core_handle_irq(uint32_t irq)
 
 		list_del_init(&pConfig->listEntry);
 		}
-
+	spin_unlock_irqrestore(&irq_lock, flags);
 	return 0;
 }
 
