@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (C) 2023 MediaTek Inc.
+ */
+
 #include "mtk/ion_drv.h"
 #include "mdp_buffer.h"
 #include "mdp_log.h"
@@ -284,21 +289,28 @@ enum MDP_TASK_STATUS mdp_buffer_convert_ion_fd(struct mdp_buffer_struct *pBuffer
 enum MDP_TASK_STATUS mdp_buffer_release_ion_handle(struct mdp_buffer_struct *pBuffer, struct mdp_ion_struct *pIonHandle)
 {
 	bool isOneChannel = ((pBuffer->buffer_info.fd) & 0xFFFF0000) == 0;
+	enum MDP_TASK_STATUS ret = MDP_TASK_STATUS_OK;
 
 	if (IS_ERR_OR_NULL(pIonHandle->ionHandle1)) {
-		MDP_ERR("invalid release ion handle:%p\n", pIonHandle->ionHandle1);
-		return MDP_TASK_STATUS_INVALID_PARAM;
+		MDP_ERR("invalid free ion handle:%p\n", pIonHandle->ionHandle1);
+		ret = MDP_TASK_STATUS_INVALID_PARAM;
+	} else {
+		ion_free(g_mdp_temp_buffer_info.client, pIonHandle->ionHandle1);
+		pIonHandle->ionHandle1 = NULL;
 	}
-	ion_free(g_mdp_temp_buffer_info.client, pIonHandle->ionHandle1);
 
 	if (!isOneChannel) {
 		if (IS_ERR_OR_NULL(pIonHandle->ionHandle2)) {
-			MDP_ERR("invalid release ion handle2:%p\n", pIonHandle->ionHandle2);
-			return MDP_TASK_STATUS_INVALID_PARAM;
+			MDP_ERR("invalid free handle2:%p\n",
+					pIonHandle->ionHandle2);
+			ret = MDP_TASK_STATUS_INVALID_PARAM;
+		} else {
+			ion_free(g_mdp_temp_buffer_info.client,
+					pIonHandle->ionHandle2);
+			pIonHandle->ionHandle2 = NULL;
 		}
-		ion_free(g_mdp_temp_buffer_info.client, pIonHandle->ionHandle2);
 	}
-	return MDP_TASK_STATUS_OK;
+	return ret;
 }
 
 

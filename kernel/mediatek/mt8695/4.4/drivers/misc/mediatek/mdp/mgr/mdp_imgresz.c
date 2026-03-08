@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (C) 2023 MediaTek Inc.
+ */
+
 #include <linux/kthread.h>
 #include <linux/wait.h>
 #include <linux/atomic.h>
@@ -55,10 +60,10 @@ void mdp_imgresz_disable_clk_id(int hw_id)
 	if (value == 0) {
 		MDP_LOG("disable HW %d clk\n", hw_id);
 		imgresz_clk_off(hw_id);
-	}
-
-	if (value < 0)
+	} else if (value < 0) {
 		MDP_ERR("imgresz %d enable & disable not match[%d]\n", hw_id, value);
+		atomic_set(&hw_count[hw_id], 0);
+	}
 }
 
 void mdp_imgresz_mgr_task_clk(struct mdp_task_struct *pTask, bool enable_clock)
