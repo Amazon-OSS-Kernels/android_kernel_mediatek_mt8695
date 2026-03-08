@@ -670,7 +670,9 @@ static void btmtk_sdio_woble_free_setting(void)
 			disable_irq_nosync(g_card->wobt_irq);
 		} else
 			BTMTK_INFO("irq_enable count:%d", atomic_read(&(g_card->irq_enable_count)));
-		free_irq(g_card->wobt_irq, g_card);
+
+		if (g_card->wobt_irq > 0)
+			free_irq(g_card->wobt_irq, g_card);
 	}
 
 	BTMTK_INFO("end");
@@ -5472,7 +5474,6 @@ static void btmtk_sdio_woble_input_deinit(struct btmtk_sdio_card *data)
 {
 	if (data->WoBLEInputDev) {
 		 input_unregister_device(data->WoBLEInputDev);
-		 input_free_device(data->WoBLEInputDev);
 		 data->WoBLEInputDev = NULL;
 	}
 }
@@ -6750,7 +6751,6 @@ ssize_t btmtk_fops_write(struct file *filp, const char __user *buf,
 	memcpy(&skb->data[0], pkt_data, copy_size - 1);
 
 	skb->len = copy_size - 1;
-	skb_queue_tail(&g_card->tx_queue, skb);
 
 	if (bt_cb(skb)->pkt_type == HCI_COMMAND_PKT) {
 		u8 fw_assert_cmd[] = { 0x6F, 0xFC, 0x05, 0x01, 0x02, 0x01, 0x00, 0x08 };
@@ -6771,6 +6771,7 @@ ssize_t btmtk_fops_write(struct file *filp, const char __user *buf,
 			BTMTK_INFO("got command: 0x01 10 00 (READ_LOCAL_VERSION)");
 	}
 
+	skb_queue_tail(&g_card->tx_queue, skb);
 	wake_up_interruptible(&g_priv->main_thread.wait_q);
 
 	retval = copy_size;
