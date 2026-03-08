@@ -29,7 +29,7 @@
 /* Schema name: efigpterrors */
 #define SMP_GPT_SCHEMA_ID "qud8/2/03330410"
 
-#define METRICS_THERMISTOR_SCHEMA_ID "sk77/2/03330430"
+#define METRICS_THERMISTOR_SCHEMA_ID "ol8z/2/02330431"
 
 #define MINERVA_PREDEFINED_REQUIRED_FIELD "_deviceType=;SY,_platform=;SY,_marketPlaceId=;SY,_countryOfResidence=;SY,_otaGroupName=;SY,_osFileTag=;SY"
 

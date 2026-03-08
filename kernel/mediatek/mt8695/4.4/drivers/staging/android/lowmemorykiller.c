@@ -74,6 +74,7 @@ static int lowmem_minfree_size = 4;
 
 static unsigned long lowmem_deathpending_timeout;
 static pid_t lowmem_deathpending_tgid;
+static unsigned long lowmem_kill_timeout;
 
 /* fosmod_fireos_crash_reporting begin */
 /* Declarations */
@@ -159,6 +160,14 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 						global_page_state(NR_SHMEM) -
 						global_page_state(NR_UNEVICTABLE) -
 						total_swapcache_pages();
+
+	/* Avoid to have too many parallel executions from direct reclaim when
+	memory pressure is really critical. The cost of going through task
+	list to find one to kill is too high when allow parallel execution */
+	if (time_before_eq(jiffies, lowmem_kill_timeout) && (!current_is_kswapd())) {
+		lowmem_print(5, "skip kill for direct reclaim within kill timeout\n");
+		return 0;
+	}
 
 	if (lowmem_adj_size < array_size)
 		array_size = lowmem_adj_size;
@@ -313,6 +322,8 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 			#endif
 			}
 		lowmem_deathpending_timeout = jiffies + HZ;
+		/* for skipping scan from direct reclaim in next 100ms*/
+		lowmem_kill_timeout = jiffies + HZ/10;
 		rem += selected_tasksize;
 	}
 
