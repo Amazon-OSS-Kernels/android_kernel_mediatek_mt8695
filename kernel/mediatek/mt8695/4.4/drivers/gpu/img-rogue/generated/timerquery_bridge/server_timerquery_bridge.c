@@ -70,9 +70,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Server-side bridge entry points
  */
  
-
-
-
 static IMG_INT
 PVRSRVBridgeRGXBeginTimerQuery(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_RGXBEGINTIMERQUERY *psRGXBeginTimerQueryIN,
@@ -100,9 +97,6 @@ PVRSRVBridgeRGXBeginTimerQuery(IMG_UINT32 ui32DispatchTableEntry,
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -135,9 +129,6 @@ PVRSRVBridgeRGXEndTimerQuery(IMG_UINT32 ui32DispatchTableEntry,
 }
 
 
-
-
-
 static IMG_INT
 PVRSRVBridgeRGXQueryTimer(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_RGXQUERYTIMER *psRGXQueryTimerIN,
@@ -167,9 +158,6 @@ PVRSRVBridgeRGXQueryTimer(IMG_UINT32 ui32DispatchTableEntry,
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT

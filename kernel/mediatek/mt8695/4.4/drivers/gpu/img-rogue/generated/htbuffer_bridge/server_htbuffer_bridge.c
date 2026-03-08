@@ -72,9 +72,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Server-side bridge entry points
  */
  
-
-
-
 static IMG_INT
 PVRSRVBridgeHTBConfigure(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_HTBCONFIGURE *psHTBConfigureIN,
@@ -89,23 +86,14 @@ PVRSRVBridgeHTBConfigure(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-			((IMG_UINT64) psHTBConfigureIN->ui32NameSize * sizeof(IMG_CHAR)) +
+	IMG_UINT32 ui32BufferSize = 
+			(psHTBConfigureIN->ui32NameSize * sizeof(IMG_CHAR)) +
 			0;
 
 
 	PVR_UNREFERENCED_PARAMETER(psConnection);
 
 
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psHTBConfigureOUT->eError = PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto HTBConfigure_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -167,10 +155,7 @@ HTBConfigure_exit:
 
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if(psHTBConfigureOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if(pArrayArgsBuffer)
@@ -182,9 +167,6 @@ HTBConfigure_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -201,23 +183,14 @@ PVRSRVBridgeHTBControl(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-			((IMG_UINT64) psHTBControlIN->ui32NumGroups * sizeof(IMG_UINT32)) +
+	IMG_UINT32 ui32BufferSize = 
+			(psHTBControlIN->ui32NumGroups * sizeof(IMG_UINT32)) +
 			0;
 
 
 	PVR_UNREFERENCED_PARAMETER(psConnection);
 
 
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psHTBControlOUT->eError = PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto HTBControl_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -282,10 +255,7 @@ HTBControl_exit:
 
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if(psHTBControlOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if(pArrayArgsBuffer)
@@ -297,9 +267,6 @@ HTBControl_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -316,23 +283,14 @@ PVRSRVBridgeHTBLog(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-			((IMG_UINT64) psHTBLogIN->ui32NumArgs * sizeof(IMG_UINT32)) +
+	IMG_UINT32 ui32BufferSize = 
+			(psHTBLogIN->ui32NumArgs * sizeof(IMG_UINT32)) +
 			0;
 
 
 	PVR_UNREFERENCED_PARAMETER(psConnection);
 
 
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psHTBLogOUT->eError = PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto HTBLog_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -396,10 +354,7 @@ HTBLog_exit:
 
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if(psHTBLogOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if(pArrayArgsBuffer)

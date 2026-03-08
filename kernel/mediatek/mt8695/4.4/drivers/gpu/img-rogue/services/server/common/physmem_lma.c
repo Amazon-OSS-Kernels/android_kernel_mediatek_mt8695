@@ -69,7 +69,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 typedef struct _PMR_LMALLOCARRAY_DATA_ {
 	PVRSRV_DEVICE_NODE *psDevNode;
-	IMG_PID uiPid;
     IMG_INT32 iNumPagesAllocated;
     /*
      * uiTotalNumPages:
@@ -250,7 +249,6 @@ _AllocLMPageArray(PVRSRV_DEVICE_NODE *psDevNode,
 			  IMG_BOOL bFwLocalAlloc,
 			  PHYS_HEAP* psPhysHeap,
 			  PVRSRV_MEMALLOCFLAGS_T uiAllocFlags,
-			  IMG_PID uiPid,
 			  PMR_LMALLOCARRAY_DATA **ppsPageArrayDataPtr
 			  )
 {
@@ -302,7 +300,6 @@ _AllocLMPageArray(PVRSRV_DEVICE_NODE *psDevNode,
 		psPageArrayData->uiLog2AllocSize = uiLog2AllocPageSize;
 	}
 	psPageArrayData->psDevNode = psDevNode;
-	psPageArrayData->uiPid = uiPid;
 	psPageArrayData->pasDevPAddr = OSAllocMem(sizeof(IMG_DEV_PHYADDR) *
 												psPageArrayData->uiTotalNumPages);
 	if (psPageArrayData->pasDevPAddr == NULL)
@@ -478,7 +475,7 @@ _AllocLMPages(PMR_LMALLOCARRAY_DATA *psPageArrayData, IMG_UINT32 *pui32MapTable)
 #if defined(PVRSRV_ENABLE_PROCESS_STATS)
 #if !defined(PVRSRV_ENABLE_MEMORY_STATS)
 		/* Allocation is done a page at a time */
-		PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_ALLOC_LMA_PAGES, uiActualSize, psPageArrayData->uiPid);
+		PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_ALLOC_LMA_PAGES, uiActualSize);
 #else
 		{
 			IMG_CPU_PHYADDR sLocalCpuPAddr;
@@ -488,8 +485,7 @@ _AllocLMPages(PMR_LMALLOCARRAY_DATA *psPageArrayData, IMG_UINT32 *pui32MapTable)
 									 NULL,
 									 sLocalCpuPAddr,
 									 uiActualSize,
-									 NULL,
-									 psPageArrayData->uiPid);
+									 NULL);
 		}
 #endif
 #endif
@@ -558,13 +554,11 @@ errorOnRAAlloc:
 #if !defined(PVRSRV_ENABLE_MEMORY_STATS)
 			/* Allocation is done a page at a time */
 			PVRSRVStatsDecrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_ALLOC_LMA_PAGES,
-			                            uiContigAllocSize,
-			                            psPageArrayData->uiPid);
+			                            uiContigAllocSize);
 #else
 			{
 				PVRSRVStatsRemoveMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE_ALLOC_LMA_PAGES,
-				                                psPageArrayData->pasDevPAddr[ui32Index].uiAddr,
-				                                psPageArrayData->uiPid);
+				                                psPageArrayData->pasDevPAddr[ui32Index].uiAddr);
 			}
 #endif
 #endif
@@ -647,13 +641,11 @@ _FreeLMPages(PMR_LMALLOCARRAY_DATA *psPageArrayData,
 #if !defined(PVRSRV_ENABLE_MEMORY_STATS)
 			/* Allocation is done a page at a time */
 			PVRSRVStatsDecrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_ALLOC_LMA_PAGES,
-			                            uiContigAllocSize,
-			                            psPageArrayData->uiPid);
+			                            uiContigAllocSize);
 #else
 			{
 				PVRSRVStatsRemoveMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE_ALLOC_LMA_PAGES,
-				                                psPageArrayData->pasDevPAddr[ui32Index].uiAddr,
-				                                psPageArrayData->uiPid);
+				                                psPageArrayData->pasDevPAddr[ui32Index].uiAddr);
 			}
 #endif
 #endif
@@ -790,9 +782,7 @@ PMRSysPhysAddrLocalMem(PMR_IMPL_PRIVDATA pvPriv,
 				uiAllocIndex = puiOffset[idx] >> uiLog2AllocSize;
 				uiInAllocOffset = puiOffset[idx] - (uiAllocIndex << uiLog2AllocSize);
 
-				PVR_LOGR_IF_FALSE(uiAllocIndex < uiNumAllocs,
-				                  "puiOffset out of range", PVRSRV_ERROR_OUT_OF_RANGE);
-
+				PVR_ASSERT(uiAllocIndex < uiNumAllocs);
 				PVR_ASSERT(uiInAllocOffset < (1ULL << uiLog2AllocSize));
 
 				psDevPAddr[idx].uiAddr = psLMAllocArrayData->pasDevPAddr[uiAllocIndex].uiAddr + uiInAllocOffset;
@@ -1406,7 +1396,6 @@ PhysmemNewLocalRamBackedPMR(PVRSRV_DEVICE_NODE *psDevNode,
 							IMG_UINT32 uiLog2AllocPageSize,
 							PVRSRV_MEMALLOCFLAGS_T uiFlags,
 							const IMG_CHAR *pszAnnotation,
-							IMG_PID uiPid,
 							PMR **ppsPMRPtr)
 {
 	PVRSRV_ERROR eError;
@@ -1479,7 +1468,6 @@ PhysmemNewLocalRamBackedPMR(PVRSRV_DEVICE_NODE *psDevNode,
 	                           bFwLocalAlloc,
 	                           psPhysHeap,
 	                           uiFlags,
-                               uiPid,
 	                           &psPrivData);
 	if (eError != PVRSRV_OK)
 	{

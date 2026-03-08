@@ -70,7 +70,6 @@ PhysmemNewLocalRamBackedPMR(PVRSRV_DEVICE_NODE *psDevNode,
 							IMG_UINT32 uiLog2PageSize,
 							PVRSRV_MEMALLOCFLAGS_T uiFlags,
 							const IMG_CHAR *pszAnnotation,
-							IMG_PID uiPid,
 							PMR **ppsPMRPtr);
 
 #if defined(SUPPORT_GPUVIRT_VALIDATION)

@@ -73,9 +73,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Server-side bridge entry points
  */
  
-
-
-
 static IMG_INT
 PVRSRVBridgeDebugMiscSLCSetBypassState(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_DEBUGMISCSLCSETBYPASSSTATE *psDebugMiscSLCSetBypassStateIN,
@@ -104,9 +101,6 @@ PVRSRVBridgeDebugMiscSLCSetBypassState(IMG_UINT32 ui32DispatchTableEntry,
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -138,9 +132,6 @@ PVRSRVBridgeRGXDebugMiscSetFWLog(IMG_UINT32 ui32DispatchTableEntry,
 }
 
 
-
-
-
 static IMG_INT
 PVRSRVBridgeRGXDebugMiscDumpFreelistPageList(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_RGXDEBUGMISCDUMPFREELISTPAGELIST *psRGXDebugMiscDumpFreelistPageListIN,
@@ -169,9 +160,6 @@ PVRSRVBridgeRGXDebugMiscDumpFreelistPageList(IMG_UINT32 ui32DispatchTableEntry,
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -244,9 +232,6 @@ PhysmemImportSecBuf_exit:
 }
 
 
-
-
-
 static IMG_INT
 PVRSRVBridgeRGXDebugMiscSetHCSDeadline(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_RGXDEBUGMISCSETHCSDEADLINE *psRGXDebugMiscSetHCSDeadlineIN,
@@ -274,9 +259,6 @@ PVRSRVBridgeRGXDebugMiscSetHCSDeadline(IMG_UINT32 ui32DispatchTableEntry,
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -307,9 +289,6 @@ PVRSRVBridgeRGXDebugMiscSetOSidPriority(IMG_UINT32 ui32DispatchTableEntry,
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT

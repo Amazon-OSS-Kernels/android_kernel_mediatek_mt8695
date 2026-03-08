@@ -164,7 +164,6 @@ IMG_INTERNAL void *_OSAllocMem(IMG_UINT32 ui32Size, void *pvAllocFromFile, IMG_U
 										  sCpuPAddr,
 										  ksize(pvRet),
 										  NULL,
-										  OSGetCurrentClientProcessIDKM(),
 										  pvAllocFromFile,
 										  ui32AllocFromLine);
 		}
@@ -178,7 +177,6 @@ IMG_INTERNAL void *_OSAllocMem(IMG_UINT32 ui32Size, void *pvAllocFromFile, IMG_U
 										  sCpuPAddr,
 										  ((ui32Size + PAGE_SIZE -1) & ~(PAGE_SIZE-1)),
 										  NULL,
-										  OSGetCurrentClientProcessIDKM(),
 										  pvAllocFromFile,
 										  ui32AllocFromLine);
 		}
@@ -211,7 +209,6 @@ IMG_INTERNAL void *_OSAllocZMem(IMG_UINT32 ui32Size, void *pvAllocFromFile, IMG_
 										  sCpuPAddr,
 										  ksize(pvRet),
 										  NULL,
-										  OSGetCurrentClientProcessIDKM(),
 										  pvAllocFromFile,
 										  ui32AllocFromLine);
 		}
@@ -225,7 +222,6 @@ IMG_INTERNAL void *_OSAllocZMem(IMG_UINT32 ui32Size, void *pvAllocFromFile, IMG_
 										  sCpuPAddr,
 										  ((ui32Size + PAGE_SIZE -1) & ~(PAGE_SIZE-1)),
 										  NULL,
-										  OSGetCurrentClientProcessIDKM(),
 										  pvAllocFromFile,
 										  ui32AllocFromLine);
 		}
@@ -259,7 +255,7 @@ IMG_INTERNAL void *OSAllocMem(IMG_UINT32 ui32Size)
 				IMG_UINT32 *puiTemp = (IMG_UINT32*) (((IMG_BYTE*)pvRet) + (ksize(pvRet) - ALLOCMEM_MEMSTATS_PADDING));
 				*puiTemp = OSGetCurrentProcessID();
 			}
-			PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_KMALLOC, ksize(pvRet), OSGetCurrentClientProcessIDKM());
+			PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_KMALLOC, ksize(pvRet));
 #else
 			IMG_CPU_PHYADDR sCpuPAddr;
 			sCpuPAddr.uiAddr = 0;
@@ -268,8 +264,7 @@ IMG_INTERNAL void *OSAllocMem(IMG_UINT32 ui32Size)
 										 pvRet,
 										 sCpuPAddr,
 										 ksize(pvRet),
-										 NULL
-										 OSGetCurrentClientProcessIDKM());
+										 NULL);
 #endif
 #endif
 		}
@@ -279,8 +274,7 @@ IMG_INTERNAL void *OSAllocMem(IMG_UINT32 ui32Size)
 #if !defined(PVRSRV_ENABLE_MEMORY_STATS)
 			PVRSRVStatsIncrMemAllocStatAndTrack(PVRSRV_MEM_ALLOC_TYPE_VMALLOC,
 											    ((ui32Size + PAGE_SIZE -1) & ~(PAGE_SIZE-1)),
-											    (IMG_UINT64)(uintptr_t) pvRet,
-												OSGetCurrentClientProcessIDKM());
+											    (IMG_UINT64)(uintptr_t) pvRet);
 #else
 			IMG_CPU_PHYADDR sCpuPAddr;
 			sCpuPAddr.uiAddr = 0;
@@ -289,8 +283,7 @@ IMG_INTERNAL void *OSAllocMem(IMG_UINT32 ui32Size)
 										 pvRet,
 										 sCpuPAddr,
 										 ((ui32Size + PAGE_SIZE -1) & ~(PAGE_SIZE-1)),
-										 NULL
-										 OSGetCurrentClientProcessIDKM());
+										 NULL);
 #endif
 #endif
 		}
@@ -323,7 +316,7 @@ IMG_INTERNAL void *OSAllocZMem(IMG_UINT32 ui32Size)
 				IMG_UINT32 *puiTemp = (IMG_UINT32*) (((IMG_BYTE*)pvRet) + (ksize(pvRet) - ALLOCMEM_MEMSTATS_PADDING));
 				*puiTemp = OSGetCurrentProcessID();
 			}
-			PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_KMALLOC, ksize(pvRet), OSGetCurrentClientProcessIDKM());
+			PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE_KMALLOC, ksize(pvRet));
 #else
 			IMG_CPU_PHYADDR sCpuPAddr;
 			sCpuPAddr.uiAddr = 0;
@@ -332,8 +325,7 @@ IMG_INTERNAL void *OSAllocZMem(IMG_UINT32 ui32Size)
 								 pvRet,
 								 sCpuPAddr,
 								 ksize(pvRet),
-								 NULL
-								 OSGetCurrentClientProcessIDKM());
+								 NULL);
 #endif
 #endif
 		}
@@ -343,8 +335,7 @@ IMG_INTERNAL void *OSAllocZMem(IMG_UINT32 ui32Size)
 #if !defined(PVRSRV_ENABLE_MEMORY_STATS)
 			PVRSRVStatsIncrMemAllocStatAndTrack(PVRSRV_MEM_ALLOC_TYPE_VMALLOC,
 											    ((ui32Size + PAGE_SIZE -1) & ~(PAGE_SIZE-1)),
-											    (IMG_UINT64)(uintptr_t) pvRet,
-												OSGetCurrentClientProcessIDKM());
+											    (IMG_UINT64)(uintptr_t) pvRet);
 #else
 			IMG_CPU_PHYADDR sCpuPAddr;
 			sCpuPAddr.uiAddr = 0;
@@ -353,8 +344,7 @@ IMG_INTERNAL void *OSAllocZMem(IMG_UINT32 ui32Size)
 										 pvRet,
 										 sCpuPAddr,
 										 ((ui32Size + PAGE_SIZE -1) & ~(PAGE_SIZE-1)),
-										 NULL
-										 OSGetCurrentClientProcessIDKM());
+										 NULL);
 #endif
 #endif
 		}
@@ -381,8 +371,7 @@ IMG_INTERNAL void (OSFreeMem)(void *pvMem)
 			}
 #else
 			PVRSRVStatsRemoveMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE_KMALLOC,
-			                                (IMG_UINT64)(uintptr_t) pvMem,
-											OSGetCurrentClientProcessIDKM());
+			                                (IMG_UINT64)(uintptr_t) pvMem);
 #endif
 #endif
 			_pvr_kfree(pvMem);
@@ -395,8 +384,7 @@ IMG_INTERNAL void (OSFreeMem)(void *pvMem)
 			                                      (IMG_UINT64)(uintptr_t) pvMem);
 #else
 			PVRSRVStatsRemoveMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE_VMALLOC,
-			                                (IMG_UINT64)(uintptr_t) pvMem,
-											OSGetCurrentClientProcessIDKM());
+			                                (IMG_UINT64)(uintptr_t) pvMem);
 #endif
 #endif
 			_pvr_vfree(pvMem);

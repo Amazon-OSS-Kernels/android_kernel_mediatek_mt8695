@@ -486,7 +486,6 @@ PVRSRV_ERROR PhysmemNewTDSecureBufPMR(CONNECTION_DATA *psConnection,
 	                                  psPrivData->ui32Log2PageSize,
 	                                  uiFlags,
 	                                  "TDSECUREBUF_OSMEM",
-	                                  OSGetCurrentClientProcessIDKM(),
 	                                  &psOSPMR);
 	if (eError != PVRSRV_OK)
 	{

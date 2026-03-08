@@ -98,8 +98,7 @@ void  PVRSRVStatsAddMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 								   void *pvCpuVAddr,
 								   IMG_CPU_PHYADDR sCpuPAddr,
 								   size_t uiBytes,
-								   void *pvPrivateData,
-								   IMG_PID uiPid);
+								   void *pvPrivateData);
 
 #if defined(PVRSRV_DEBUG_LINUX_MEMORY_STATS) && defined(DEBUG)
 void  _PVRSRVStatsAddMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
@@ -107,17 +106,13 @@ void  _PVRSRVStatsAddMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 									IMG_CPU_PHYADDR sCpuPAddr,
 									size_t uiBytes,
 									void *pvPrivateData,
-									IMG_PID uiPid,
 									void *pvAllocFromFile, IMG_UINT32 ui32AllocFromLine);
 #endif
 void  PVRSRVStatsRemoveMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
-									  IMG_UINT64 ui64Key,
-									  IMG_PID uiPid);
+									  IMG_UINT64 ui64Key);
 
 void PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE eAllocType,
-								 size_t uiBytes,
-								 IMG_PID uiPid);
-
+								 size_t uiBytes);
 /*
  * Increases the memory stat for eAllocType. Tracks the allocation size value
  * by inserting a value into a hash table with uiCpuVAddr as key.
@@ -125,12 +120,10 @@ void PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE eAllocType,
  */
 void PVRSRVStatsIncrMemAllocStatAndTrack(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 										 size_t uiBytes,
-										 IMG_UINT64 uiCpuVAddr,
-										 IMG_PID uiPid);
+										 IMG_UINT64 uiCpuVAddr);
 
 void PVRSRVStatsDecrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE eAllocType,
-								 size_t uiBytes,
-								 IMG_PID uiPid);
+								 size_t uiBytes);
 
 void PVRSRVStatsDecrMemKAllocStat(size_t uiBytes,
 								  IMG_PID decrPID);

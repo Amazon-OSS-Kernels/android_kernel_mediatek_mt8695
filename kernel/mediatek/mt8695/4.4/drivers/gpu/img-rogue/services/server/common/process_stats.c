@@ -57,7 +57,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "connection_server.h"
 #include "pvrsrv.h"
 #include "proc_stats.h"
-#include "pvr_ricommon.h"
 
  /* Enabled OS Statistics entries:  DEBUGFS on Linux, undefined for other OSs */
 #if defined(LINUX) && ( \
@@ -368,11 +367,6 @@ static void *pvOSDeadPidFolder = NULL;
 static void *pvOSProcStats = NULL;
 #endif
 
-#if defined(PVR_RI_DEBUG)
-/* global driver PID stats registration handle */
-static IMG_HANDLE g_hDriverProcessStats;
-#endif
-
 /* global driver-data folders */
 typedef struct _GLOBAL_STATS_
 {
@@ -389,8 +383,6 @@ static GLOBAL_STATS gsGlobalStats;
  * against its address (not needed for kmallocs as we can use ksize()) */
 static HASH_TABLE* gpsSizeTrackingHashTable;
 static POS_LOCK	 gpsSizeTrackingHashTableLock;
-
-static PVRSRV_ERROR _RegisterProcess(IMG_HANDLE *phProcessStats, IMG_PID ownerPid);
 
 static void _AddProcessStatsToFrontOfDeadList(PVRSRV_PROCESS_STATS* psProcessStats);
 static void _AddProcessStatsToFrontOfLiveList(PVRSRV_PROCESS_STATS* psProcessStats);
@@ -1104,10 +1096,6 @@ PVRSRVStatsInitialise(void)
 		OSCachedMemSet(asClockSpeedChanges, 0, sizeof(asClockSpeedChanges));
 
 		bProcessStatsInitialised = IMG_TRUE;
-#if defined(PVR_RI_DEBUG)
-		/* Register our 'system' PID to hold driver-wide alloc stats */
-		_RegisterProcess(&g_hDriverProcessStats, PVR_SYS_ALLOC_PID);
-#endif
 	}
 	return error;
 e1:
@@ -1128,11 +1116,6 @@ void
 PVRSRVStatsDestroy(void)
 {
 	PVR_ASSERT(bProcessStatsInitialised == IMG_TRUE);
-
-#if defined(PVR_RI_DEBUG)
-	/* Deregister our 'system' PID which holds driver-wide alloc stats */
-	PVRSRVStatsDeregisterProcess(g_hDriverProcessStats);
-#endif
 
 	/* Stop monitoring memory allocations... */
 	bProcessStatsInitialised = IMG_FALSE;
@@ -1334,11 +1317,18 @@ static void _increase_global_stat(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 	OSLockRelease(gsGlobalStats.hGlobalStatsLock);
 }
 
-static PVRSRV_ERROR
-_RegisterProcess(IMG_HANDLE *phProcessStats, IMG_PID ownerPid)
+/*************************************************************************/ /*!
+@Function       PVRSRVStatsRegisterProcess
+@Description    Register a process into the list statistics list.
+@Output         phProcessStats  Handle to the process to be used to deregister.
+@Return         Standard PVRSRV_ERROR error code.
+*/ /**************************************************************************/
+PVRSRV_ERROR
+PVRSRVStatsRegisterProcess(IMG_HANDLE* phProcessStats)
 {
 	PVRSRV_PROCESS_STATS*	psProcessStats=NULL;
 	PVRSRV_ERROR			eError;
+	IMG_PID					currentPid = OSGetCurrentClientProcessIDKM();
 	IMG_BOOL				bMoveProcess = IMG_FALSE;
 #if defined(PVRSRV_DEBUG_LINUX_MEMORY_STATS)
 	IMG_CHAR				acFolderName[30];
@@ -1352,7 +1342,7 @@ _RegisterProcess(IMG_HANDLE *phProcessStats, IMG_PID ownerPid)
 
 	/* Check the PID has not already moved to the dead list... */
 	OSLockAcquire(g_psLinkedListLock);
-	psProcessStats = _FindProcessStatsInDeadList(ownerPid);
+	psProcessStats = _FindProcessStatsInDeadList(currentPid);
 	if (psProcessStats != NULL)
 	{
 		/* Move it back onto the live list! */
@@ -1365,7 +1355,7 @@ _RegisterProcess(IMG_HANDLE *phProcessStats, IMG_PID ownerPid)
 	else
 	{
 		/* Check the PID is not already registered in the live list... */
-		psProcessStats = _FindProcessStatsInLiveList(ownerPid);
+		psProcessStats = _FindProcessStatsInLiveList(currentPid);
 	}
 
 	/* If the PID is on the live list then just increment the ref count and return... */
@@ -1411,7 +1401,7 @@ _RegisterProcess(IMG_HANDLE *phProcessStats, IMG_PID ownerPid)
 	}
 
 	psProcessStats->eStructureType  = PVRSRV_STAT_STRUCTURE_PROCESS;
-	psProcessStats->pid             = ownerPid;
+	psProcessStats->pid             = currentPid;
 	psProcessStats->ui32RefCount    = 1;
 #if !defined(PVRSRV_USE_BRIDGE_LOCK)
 	OSAtomicWrite(&psProcessStats->iMemRefCount, 1);
@@ -1448,7 +1438,7 @@ _RegisterProcess(IMG_HANDLE *phProcessStats, IMG_PID ownerPid)
 		goto e0;
 	}
 	psProcessStats->psRIMemoryStats->eStructureType = PVRSRV_STAT_STRUCTURE_RIMEMORY;
-	psProcessStats->psRIMemoryStats->pid            = ownerPid;
+	psProcessStats->psRIMemoryStats->pid            = currentPid;
 #endif
 
 #if defined(PVRSRV_ENABLE_CACHEOP_STATS)
@@ -1472,10 +1462,10 @@ _RegisterProcess(IMG_HANDLE *phProcessStats, IMG_PID ownerPid)
 	/* Create the process stat in the OS... */
 #if defined(PVRSRV_DEBUG_LINUX_MEMORY_STATS)
 	OSSNPrintf(psProcessStats->szFolderName, sizeof(psProcessStats->szFolderName),
-			   "%d_%s", ownerPid, acFolderName);
+			   "%d_%s", currentPid, acFolderName);
 #else
 	OSSNPrintf(psProcessStats->szFolderName, sizeof(psProcessStats->szFolderName),
-			   "%d", ownerPid);
+			   "%d", currentPid);
 #endif
 	_CreatePIDOSStatisticEntries(psProcessStats, pvOSLivePidFolder);
 #endif
@@ -1489,19 +1479,7 @@ e0:
 	OSFreeMemNoStats(psProcessStats);
 	*phProcessStats = 0;
 	return PVRSRV_ERROR_OUT_OF_MEMORY;
-} /* _RegisterProcess */
-
-/*************************************************************************/ /*!
-@Function       PVRSRVStatsRegisterProcess
-@Description    Register a process into the list statistics list.
-@Output         phProcessStats  Handle to the process to be used to deregister.
-@Return         Standard PVRSRV_ERROR error code.
-*/ /**************************************************************************/
-PVRSRV_ERROR
-PVRSRVStatsRegisterProcess(IMG_HANDLE* phProcessStats)
-{
-	return _RegisterProcess(phProcessStats, OSGetCurrentClientProcessIDKM());
-}
+} /* PVRSRVStatsRegisterProcess */
 
 /*************************************************************************/ /*!
 @Function       PVRSRVStatsDeregisterProcess
@@ -1563,11 +1541,10 @@ PVRSRVStatsAddMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 							 void *pvCpuVAddr,
 							 IMG_CPU_PHYADDR sCpuPAddr,
 							 size_t uiBytes,
-							 void *pvPrivateData,
-							 IMG_PID currentPid)
+							 void *pvPrivateData)
 #if defined(PVRSRV_DEBUG_LINUX_MEMORY_STATS) && defined(DEBUG)
 {
-	_PVRSRVStatsAddMemAllocRecord(eAllocType, pvCpuVAddr, sCpuPAddr, uiBytes, pvPrivateData, currentPid, NULL, 0);
+	_PVRSRVStatsAddMemAllocRecord(eAllocType, pvCpuVAddr, sCpuPAddr, uiBytes, pvPrivateData, NULL, 0);
 }
 void
 _PVRSRVStatsAddMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
@@ -1575,11 +1552,11 @@ _PVRSRVStatsAddMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 							  IMG_CPU_PHYADDR sCpuPAddr,
 							  size_t uiBytes,
 							  void *pvPrivateData,
-							  IMG_PID currentPid,
 							  void *pvAllocFromFile, IMG_UINT32 ui32AllocFromLine)
 #endif
 {
 #if defined(PVRSRV_ENABLE_MEMORY_STATS)
+	IMG_PID				   currentPid = OSGetCurrentClientProcessIDKM();
 	IMG_PID				   currentCleanupPid = PVRSRVGetPurgeConnectionPid();
 	PVRSRV_DATA*		   psPVRSRVData = PVRSRVGetPVRSRVData();
 	PVRSRV_MEM_ALLOC_REC*  psRecord   = NULL;
@@ -1930,10 +1907,10 @@ e0:
 
 void
 PVRSRVStatsRemoveMemAllocRecord(PVRSRV_MEM_ALLOC_TYPE eAllocType,
-								IMG_UINT64 ui64Key,
-								IMG_PID currentPid)
+								IMG_UINT64 ui64Key)
 {
 #if defined(PVRSRV_ENABLE_MEMORY_STATS)
+	IMG_PID				   currentPid	  = OSGetCurrentClientProcessIDKM();
 	IMG_PID				   currentCleanupPid = PVRSRVGetPurgeConnectionPid();
 	PVRSRV_DATA*		   psPVRSRVData = PVRSRVGetPVRSRVData();
 	PVRSRV_PROCESS_STATS*  psProcessStats = NULL;
@@ -2103,8 +2080,7 @@ PVR_UNREFERENCED_PARAMETER(ui64Key);
 void
 PVRSRVStatsIncrMemAllocStatAndTrack(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 									size_t uiBytes,
-									IMG_UINT64 uiCpuVAddr,
-									IMG_PID uiPid)
+									IMG_UINT64 uiCpuVAddr)
 {
 	IMG_BOOL bRes = IMG_FALSE;
 	_PVR_STATS_TRACKING_HASH_ENTRY *psNewTrackingHashEntry = NULL;
@@ -2120,7 +2096,7 @@ PVRSRVStatsIncrMemAllocStatAndTrack(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 	{
 		/* Fill-in the size of the allocation and PID of the allocating process */
 		psNewTrackingHashEntry->uiSizeInBytes = uiBytes;
-		psNewTrackingHashEntry->uiPid = uiPid;
+		psNewTrackingHashEntry->uiPid = OSGetCurrentClientProcessIDKM();
 		OSLockAcquire(gpsSizeTrackingHashTableLock);
 		/* Insert address of the new struct into the hash table */
 		bRes = HASH_Insert(gpsSizeTrackingHashTable, uiCpuVAddr, (uintptr_t)psNewTrackingHashEntry);
@@ -2131,7 +2107,7 @@ PVRSRVStatsIncrMemAllocStatAndTrack(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 	{
 		if (bRes)
 		{
-			PVRSRVStatsIncrMemAllocStat(eAllocType, uiBytes, uiPid);
+			PVRSRVStatsIncrMemAllocStat(eAllocType, uiBytes);
 		}
 		else
 		{
@@ -2146,9 +2122,9 @@ PVRSRVStatsIncrMemAllocStatAndTrack(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 
 void
 PVRSRVStatsIncrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE eAllocType,
-                            size_t uiBytes,
-                            IMG_PID currentPid)
+									size_t uiBytes)
 {
+	IMG_PID				   currentPid = OSGetCurrentClientProcessIDKM();
 	IMG_PID				   currentCleanupPid = PVRSRVGetPurgeConnectionPid();
 	PVRSRV_DATA* 		   psPVRSRVData = PVRSRVGetPVRSRVData();
 	PVRSRV_PROCESS_STATS*  psProcessStats = NULL;
@@ -2516,17 +2492,14 @@ void RawProcessStatsPrintElements(void *pvFile,
 
 	while (psProcessStats != NULL)
 	{
-		if (psProcessStats->pid != PVR_SYS_ALLOC_PID)
-		{
-			pfnOSStatsPrintf(pvFile, "%d,%d,%d,%d,%d,%d\n",
-							 psProcessStats->pid,
-							 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_KMALLOC],
-							 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_PAGES_PT_UMA],
-							 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_PAGES_PT_LMA],
-							 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_LMA_PAGES],
-							 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_UMA_PAGES]
-							 );
-		}
+		pfnOSStatsPrintf(pvFile, "%d,%d,%d,%d,%d,%d\n",
+		                 psProcessStats->pid,
+		                 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_KMALLOC],
+		                 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_PAGES_PT_UMA],
+		                 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_PAGES_PT_LMA],
+		                 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_LMA_PAGES],
+		                 psProcessStats->i32StatValue[PVRSRV_PROCESS_STAT_TYPE_ALLOC_UMA_PAGES]
+		                 );
 
 		psProcessStats = psProcessStats->psNext;
 	}
@@ -2616,9 +2589,9 @@ PVRSRVStatsDecrMemAllocStatAndUntrack(PVRSRV_MEM_ALLOC_TYPE eAllocType,
 
 void
 PVRSRVStatsDecrMemAllocStat(PVRSRV_MEM_ALLOC_TYPE eAllocType,
-							size_t uiBytes,
-							IMG_PID currentPid)
+							size_t uiBytes)
 {
+	IMG_PID				   currentPid = OSGetCurrentClientProcessIDKM();
 	IMG_PID				   currentCleanupPid = PVRSRVGetPurgeConnectionPid();
 	PVRSRV_DATA* 		   psPVRSRVData = PVRSRVGetPVRSRVData();
 	PVRSRV_PROCESS_STATS*  psProcessStats = NULL;
@@ -2864,18 +2837,7 @@ ProcessStatsPrintElements(void *pvFile,
 		if (psProcessStats->ui32MemRefCount > 0)
 #endif
 		{
-#if defined(PVR_RI_DEBUG)
-			if ((ui32StatNumber == PVRSRV_PROCESS_STAT_TYPE_ALLOC_LMA_PAGES) || (ui32StatNumber == PVRSRV_PROCESS_STAT_TYPE_ALLOC_UMA_PAGES))
-			{
-				/* get the stat from RI */
-				pfnOSStatsPrintf(pvFile, pszProcessStatFmt[ui32StatNumber],
-				                 RITotalAllocProcessKM(psProcessStats->psRIMemoryStats->pid, (ui32StatNumber == PVRSRV_PROCESS_STAT_TYPE_ALLOC_LMA_PAGES) ? PHYS_HEAP_TYPE_LMA : PHYS_HEAP_TYPE_UMA));
-			}
-			else
-#endif
-			{
-				pfnOSStatsPrintf(pvFile, pszProcessStatFmt[ui32StatNumber], psProcessStats->i32StatValue[ui32StatNumber]);
-			}
+			pfnOSStatsPrintf(pvFile, pszProcessStatFmt[ui32StatNumber], psProcessStats->i32StatValue[ui32StatNumber]);
 		}
 		else
 		{
@@ -3300,9 +3262,6 @@ RIMemStatsPrintElements(void *pvFile,
 		return;
 	}
 
-	/* Acquire RI lock*/
-	RILockAcquireKM();
-
 	/*
 	 *  Loop through the RI system to get each line of text.
 	 */
@@ -3312,10 +3271,6 @@ RIMemStatsPrintElements(void *pvFile,
 	{
 		pfnOSStatsPrintf(pvFile, "%s", pszStatFmtText);
 	}
-
-	/* Release RI lock*/
-	RILockReleaseKM();
-
 } /* RIMemStatsPrintElements */
 #endif
 

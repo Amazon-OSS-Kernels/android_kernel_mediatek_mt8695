@@ -71,9 +71,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Server-side bridge entry points
  */
  
-
-
-
 static IMG_INT
 PVRSRVBridgeRGXSetBreakpoint(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_RGXSETBREAKPOINT *psRGXSetBreakpointIN,
@@ -136,7 +133,7 @@ RGXSetBreakpoint_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (hPrivDataInt)
+					if(hPrivDataInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hPrivData,
@@ -149,9 +146,6 @@ RGXSetBreakpoint_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -212,7 +206,7 @@ RGXClearBreakpoint_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (hPrivDataInt)
+					if(hPrivDataInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hPrivData,
@@ -225,9 +219,6 @@ RGXClearBreakpoint_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -288,7 +279,7 @@ RGXEnableBreakpoint_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (hPrivDataInt)
+					if(hPrivDataInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hPrivData,
@@ -301,9 +292,6 @@ RGXEnableBreakpoint_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -364,7 +352,7 @@ RGXDisableBreakpoint_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (hPrivDataInt)
+					if(hPrivDataInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hPrivData,
@@ -377,9 +365,6 @@ RGXDisableBreakpoint_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT

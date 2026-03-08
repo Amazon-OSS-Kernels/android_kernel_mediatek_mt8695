@@ -72,9 +72,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Server-side bridge entry points
  */
  
-
-
-
 static IMG_INT
 PVRSRVBridgeDevmemIntExportCtx(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_DEVMEMINTEXPORTCTX *psDevmemIntExportCtxIN,
@@ -184,7 +181,7 @@ DevmemIntExportCtx_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psContextInt)
+					if(psContextInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hContext,
@@ -198,7 +195,7 @@ DevmemIntExportCtx_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psPMRInt)
+					if(psPMRInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hPMR,
@@ -219,9 +216,6 @@ DevmemIntExportCtx_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -247,7 +241,7 @@ PVRSRVBridgeDevmemIntUnexportCtx(IMG_UINT32 ui32DispatchTableEntry,
 
 
 	psDevmemIntUnexportCtxOUT->eError =
-		PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+		PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE) psDevmemIntUnexportCtxIN->hContextExport,
 					PVRSRV_HANDLE_TYPE_DEVMEMINT_CTX_EXPORT);
 	if ((psDevmemIntUnexportCtxOUT->eError != PVRSRV_OK) &&
@@ -272,9 +266,6 @@ DevmemIntUnexportCtx_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -385,7 +376,7 @@ DevmemIntAcquireRemoteCtx_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psPMRInt)
+					if(psPMRInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hPMR,
@@ -403,7 +394,7 @@ DevmemIntAcquireRemoteCtx_exit:
 		{
 
 
-			PVRSRV_ERROR eError = PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+			PVRSRV_ERROR eError = PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 						(IMG_HANDLE) psDevmemIntAcquireRemoteCtxOUT->hContext,
 						PVRSRV_HANDLE_TYPE_DEVMEMINT_CTX);
 			if ((eError != PVRSRV_OK) && (eError != PVRSRV_ERROR_RETRY))

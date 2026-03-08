@@ -70,10 +70,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Server-side bridge entry points
  */
  
-
-
-static_assert(PRVSRVTL_MAX_STREAM_NAME_SIZE <= IMG_UINT32_MAX, "PRVSRVTL_MAX_STREAM_NAME_SIZE must not be larger than IMG_UINT32_MAX");
-
 static IMG_INT
 PVRSRVBridgeTLOpenStream(IMG_UINT32 ui32DispatchTableEntry,
 					  PVRSRV_BRIDGE_IN_TLOPENSTREAM *psTLOpenStreamIN,
@@ -90,23 +86,14 @@ PVRSRVBridgeTLOpenStream(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-			((IMG_UINT64) PRVSRVTL_MAX_STREAM_NAME_SIZE * sizeof(IMG_CHAR)) +
+	IMG_UINT32 ui32BufferSize = 
+			(PRVSRVTL_MAX_STREAM_NAME_SIZE * sizeof(IMG_CHAR)) +
 			0;
 
 
 
 
 	psTLOpenStreamOUT->hSD = NULL;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psTLOpenStreamOUT->eError = PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto TLOpenStream_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -221,7 +208,7 @@ TLOpenStream_exit:
 		{
 
 
-			PVRSRV_ERROR eError = PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+			PVRSRV_ERROR eError = PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 						(IMG_HANDLE) psTLOpenStreamOUT->hSD,
 						PVRSRV_HANDLE_TYPE_PVR_TL_SD);
 			if ((eError != PVRSRV_OK) && (eError != PVRSRV_ERROR_RETRY))
@@ -248,10 +235,7 @@ TLOpenStream_exit:
 	}
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if(psTLOpenStreamOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if(pArrayArgsBuffer)
@@ -263,9 +247,6 @@ TLOpenStream_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -291,7 +272,7 @@ PVRSRVBridgeTLCloseStream(IMG_UINT32 ui32DispatchTableEntry,
 
 
 	psTLCloseStreamOUT->eError =
-		PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+		PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE) psTLCloseStreamIN->hSD,
 					PVRSRV_HANDLE_TYPE_PVR_TL_SD);
 	if ((psTLCloseStreamOUT->eError != PVRSRV_OK) &&
@@ -316,9 +297,6 @@ TLCloseStream_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -381,7 +359,7 @@ TLAcquireData_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psSDInt)
+					if(psSDInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hSD,
@@ -394,9 +372,6 @@ TLAcquireData_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -459,7 +434,7 @@ TLReleaseData_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psSDInt)
+					if(psSDInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hSD,
@@ -473,10 +448,6 @@ TLReleaseData_exit:
 	return 0;
 }
 
-
-
-
-static_assert(PRVSRVTL_MAX_STREAM_NAME_SIZE <= IMG_UINT32_MAX, "PRVSRVTL_MAX_STREAM_NAME_SIZE must not be larger than IMG_UINT32_MAX");
 
 static IMG_INT
 PVRSRVBridgeTLDiscoverStreams(IMG_UINT32 ui32DispatchTableEntry,
@@ -493,10 +464,9 @@ PVRSRVBridgeTLDiscoverStreams(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-			((IMG_UINT64) PRVSRVTL_MAX_STREAM_NAME_SIZE * sizeof(IMG_CHAR)) +
-			((IMG_UINT64) psTLDiscoverStreamsIN->ui32Size * sizeof(IMG_CHAR)) +
+	IMG_UINT32 ui32BufferSize = 
+			(PRVSRVTL_MAX_STREAM_NAME_SIZE * sizeof(IMG_CHAR)) +
+			(psTLDiscoverStreamsIN->ui32Size * sizeof(IMG_CHAR)) +
 			0;
 
 
@@ -504,14 +474,6 @@ PVRSRVBridgeTLDiscoverStreams(IMG_UINT32 ui32DispatchTableEntry,
 
 	psTLDiscoverStreamsOUT->puiStreams = psTLDiscoverStreamsIN->puiStreams;
 
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psTLDiscoverStreamsOUT->eError = PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto TLDiscoverStreams_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -571,11 +533,6 @@ PVRSRVBridgeTLDiscoverStreams(IMG_UINT32 ui32DispatchTableEntry,
 					psTLDiscoverStreamsIN->ui32Size,
 					puiStreamsInt,
 					&psTLDiscoverStreamsOUT->ui32NumFound);
-	/* Exit early if bridged call fails */
-	if(psTLDiscoverStreamsOUT->eError != PVRSRV_OK)
-	{
-		goto TLDiscoverStreams_exit;
-	}
 
 
 
@@ -596,10 +553,7 @@ TLDiscoverStreams_exit:
 
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if(psTLDiscoverStreamsOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if(pArrayArgsBuffer)
@@ -611,9 +565,6 @@ TLDiscoverStreams_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -678,7 +629,7 @@ TLReserveStream_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psSDInt)
+					if(psSDInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hSD,
@@ -691,9 +642,6 @@ TLReserveStream_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -755,7 +703,7 @@ TLCommitStream_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psSDInt)
+					if(psSDInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hSD,
@@ -768,9 +716,6 @@ TLCommitStream_exit:
 
 	return 0;
 }
-
-
-
 
 
 static IMG_INT
@@ -789,22 +734,13 @@ PVRSRVBridgeTLWriteData(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-			((IMG_UINT64) psTLWriteDataIN->ui32Size * sizeof(IMG_BYTE)) +
+	IMG_UINT32 ui32BufferSize = 
+			(psTLWriteDataIN->ui32Size * sizeof(IMG_BYTE)) +
 			0;
 
 
 
 
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psTLWriteDataOUT->eError = PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto TLWriteData_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -896,7 +832,7 @@ TLWriteData_exit:
 
 				{
 					/* Unreference the previously looked up handle */
-					if (psSDInt)
+					if(psSDInt)
 					{
 						PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 										hSD,
@@ -907,10 +843,7 @@ TLWriteData_exit:
 	UnlockHandle();
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if(psTLWriteDataOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if(pArrayArgsBuffer)
