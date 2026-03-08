@@ -57,8 +57,8 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeTLOpenStream(IMG_HANDLE hBridge,
 							  IMG_HANDLE * phTLPMR)
 {
 	PVRSRV_ERROR eError;
-	TL_STREAM_DESC *psSDInt = NULL;
-	PMR *psTLPMRInt = NULL;
+	TL_STREAM_DESC *psSDInt;
+	PMR *psTLPMRInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	eError = TLServerOpenStreamKM(puiName, ui32Mode, &psSDInt, &psTLPMRInt);
