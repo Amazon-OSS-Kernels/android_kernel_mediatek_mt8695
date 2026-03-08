@@ -2331,17 +2331,17 @@ static int btmtk_efuse_read(u16 addr, u8 *value)
 		return ret;
 	}
 
-	if (memcmp(rxbuf + MTK_SDIO_PACKET_HEADER_SIZE + 1, efuse_r_event, sizeof(efuse_r_event)) == 0) {
+	if (memcmp(g_card->io_buf + 1, efuse_r_event, sizeof(efuse_r_event)) == 0) {
 		/*compare rxbuf format ok, compare addr*/
 		BTMTK_DBG("compare rxbuf format ok");
-		if (efuse_r[9] == rxbuf[9 + MTK_SDIO_PACKET_HEADER_SIZE] &&
-			efuse_r[10] == rxbuf[10 + MTK_SDIO_PACKET_HEADER_SIZE] &&
-			efuse_r[11] == rxbuf[15 + MTK_SDIO_PACKET_HEADER_SIZE] &&
-			efuse_r[12] == rxbuf[16 + MTK_SDIO_PACKET_HEADER_SIZE] &&
-			efuse_r[13] == rxbuf[21 + MTK_SDIO_PACKET_HEADER_SIZE] &&
-			efuse_r[14] == rxbuf[22 + MTK_SDIO_PACKET_HEADER_SIZE] &&
-			efuse_r[15] == rxbuf[27 + MTK_SDIO_PACKET_HEADER_SIZE] &&
-			efuse_r[16] == rxbuf[28 + MTK_SDIO_PACKET_HEADER_SIZE]) {
+		if (efuse_r[9] == g_card->io_buf[9] &&
+			efuse_r[10] == g_card->io_buf[10] &&
+			efuse_r[11] == g_card->io_buf[15] &&
+			efuse_r[12] == g_card->io_buf[16] &&
+			efuse_r[13] == g_card->io_buf[21] &&
+			efuse_r[14] == g_card->io_buf[22] &&
+			efuse_r[15] == g_card->io_buf[27] &&
+			efuse_r[16] == g_card->io_buf[28]) {
 
 			BTMTK_DBG("address compare ok");
 			/*Get value*/
@@ -2353,26 +2353,26 @@ static int btmtk_efuse_read(u16 addr, u8 *value)
 			case 1:
 			case 2:
 			case 3:
-				*value = rxbuf[11 + temp + MTK_SDIO_PACKET_HEADER_SIZE];
+				*value = g_card->io_buf[11 + temp];
 				break;
 			case 4:
 			case 5:
 			case 6:
 			case 7:
-				*value = rxbuf[17 + temp + MTK_SDIO_PACKET_HEADER_SIZE];
+				*value = g_card->io_buf[17 + temp];
 				break;
 			case 8:
 			case 9:
 			case 10:
 			case 11:
-				*value = rxbuf[22 + temp + MTK_SDIO_PACKET_HEADER_SIZE];
+				*value = g_card->io_buf[22 + temp];
 				break;
 
 			case 12:
 			case 13:
 			case 14:
 			case 15:
-				*value = rxbuf[34 + temp + MTK_SDIO_PACKET_HEADER_SIZE];
+				*value = g_card->io_buf[34 + temp];
 				break;
 			}
 
@@ -3300,8 +3300,12 @@ static int btmtk_sdio_read_pin_mux_setting(u32 *value)
 
 	if (ret)
 		return ret;
-
-	*value = (rxbuf[14] << 24) + (rxbuf[13] << 16) + (rxbuf[12] << 8) + rxbuf[11];
+	/* memcpy(skb->data, &rxbuf[MTK_SDIO_PACKET_HEADER_SIZE + 1], buf_len);*/
+	/*g_card->io_buf[0] = bt_cb(skb)->pkt_type; so io_buf[1] = rx_buf[5]*/
+	*value = (g_card->io_buf[10] << 24) +
+		(g_card->io_buf[9] << 16) +
+		(g_card->io_buf[8] << 8) +
+		g_card->io_buf[7];
 	BTMTK_DBG("value=%08x", *value);
 	return ret;
 }
@@ -4256,6 +4260,8 @@ static int btmtk_sdio_card_to_host(struct btmtk_private *priv, const u8 *event, 
 	if (event_compare_status == BTMTK_SDIO_EVENT_COMPARE_STATE_NEED_COMPARE) {
 		if (buf_len >= event_need_compare_len) {
 			if (memcmp(skb->data, event_need_compare, event_need_compare_len) == 0) {
+				g_card->io_buf[0] = type;
+				memcpy(&g_card->io_buf[1], skb->data, buf_len);
 				event_compare_status = BTMTK_SDIO_EVENT_COMPARE_STATE_COMPARE_SUCCESS;
 				BTMTK_DBG("compare success");
 				/* Drop by driver, don't send to stack */
@@ -5568,7 +5574,7 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 		/*allocate memory for woble_setting_file*/
 		g_card->woble_setting_file_name = kzalloc(MAX_BIN_FILE_NAME_LEN, GFP_KERNEL);
 		if (!g_card->woble_setting_file_name)
-			return -1;
+			return -ENOMEM;
 		need_retry_load_woble = 0;
 #if SUPPORT_MT7663
 		if (is_mt7663(g_card)) {
@@ -5588,10 +5594,19 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 
 		/*allocate memory for bt_cfg_file_name*/
 		g_card->bt_cfg_file_name = kzalloc(MAX_BIN_FILE_NAME_LEN, GFP_KERNEL);
-		if (!g_card->bt_cfg_file_name)
-			return -1;
+		if (!g_card->bt_cfg_file_name) {
+			ret = -ENOMEM;
+			goto err2;
+		}
 
 		memcpy(g_card->bt_cfg_file_name, BT_CFG_NAME, sizeof(BT_CFG_NAME));
+	}
+
+	/*allocate memory for io_buf*/
+	g_card->io_buf = kzalloc(IO_BUF_SIZE, GFP_KERNEL);
+	if (!g_card->io_buf) {
+		ret = -ENOMEM;
+		goto err1;
 	}
 
 	btmtk_sdio_hci_snoop_init();
@@ -5602,7 +5617,8 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 	BTMTK_DBG("func device %X, call btmtk_sdio_register_dev", g_card->func->device);
 	if (btmtk_sdio_register_dev(g_card) < 0) {
 		BTMTK_ERR("Failed to register BT device!");
-		return -ENODEV;
+		ret = -ENODEV;
+		goto err0;
 	}
 
 	BTMTK_DBG("btmtk_sdio_register_dev success");
@@ -5633,7 +5649,7 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 	if (!priv) {
 		BTMTK_ERR("Initializing card failed!");
 		ret = -ENODEV;
-		goto unreg_dev;
+		goto end;
 	}
 	BTMTK_DBG("btmtk_add_card success");
 	BTMTK_DBG("assign priv done");
@@ -5674,7 +5690,8 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 #endif
 		if (!g_card->woble_ws) {
 			BTMTK_WARN("woble_ws register fail!");
-			goto unreg_dev;
+			ret = -1;
+			goto end;
 		}
 	}
 
@@ -5689,7 +5706,8 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 			if (g_card->woble_ws)
 				wakeup_source_unregister(g_card->woble_ws);
 			BTMTK_WARN("wobt_ws register fail!");
-			goto unreg_dev;
+			ret = -1;
+			goto end;
 		}
 #if (KERNEL_VERSION(4,15,0) > LINUX_VERSION_CODE)
 		setup_timer(&g_card->wake_lock_timer, btmtk_sdio_wobt_wake_timeout, 0);
@@ -5713,7 +5731,8 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 			if (g_card->woble_ws)
 				wakeup_source_unregister(g_card->woble_ws);
 			BTMTK_WARN("eint_ws register fail!");
-			goto unreg_dev;
+			ret = -1;
+			goto end;
 		}
 
 		btmtk_sdio_RegisterBTIrq(g_card);
@@ -5729,8 +5748,18 @@ static int btmtk_sdio_probe(struct sdio_func *func,
 
 	return 0;
 
-unreg_dev:
+end:
 	btmtk_sdio_unregister_dev(g_card);
+
+err0:
+	kfree(g_card->io_buf);
+	g_card->io_buf = NULL;
+err1:
+	kfree(g_card->bt_cfg_file_name);
+	g_card->bt_cfg_file_name = NULL;
+err2:
+	kfree(g_card->woble_setting_file_name);
+	g_card->woble_setting_file_name = NULL;
 
 	BTMTK_ERR("fail end");
 	return ret;
@@ -5783,6 +5812,11 @@ static void btmtk_sdio_remove(struct sdio_func *func)
 
 			btmtk_sdio_woble_free_setting();
 			btmtk_sdio_free_bt_cfg();
+			/*free io_buf*/
+			if(card->io_buf) {
+				kfree(card->io_buf);
+				card->io_buf = NULL;
+			}
 			BTMTK_DBG("unregister dev");
 			card->priv->surprise_removed = true;
 			if (!card->priv->btmtk_dev.reset_dongle)
@@ -6500,6 +6534,13 @@ static int btmtk_fops_open(struct inode *inode, struct file *file)
 
 	FOPS_MUTEX_LOCK();
 	fops_state = btmtk_fops_get_state();
+
+	if (fops_state == BTMTK_FOPS_STATE_OPENED) {
+		BTMTK_ERR("mode is %d", fops_state);
+		FOPS_MUTEX_UNLOCK();
+		return -ENOENT;
+	}
+
 	if (fops_state == BTMTK_FOPS_STATE_CLOSING) {
 		BTMTK_ERR("mode is %d", fops_state);
 		FOPS_MUTEX_UNLOCK();

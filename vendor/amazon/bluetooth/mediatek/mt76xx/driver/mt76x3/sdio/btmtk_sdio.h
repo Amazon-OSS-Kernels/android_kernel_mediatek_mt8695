@@ -154,6 +154,9 @@ struct btmtk_sdio_card_reg {
 
 #define WOBLE_FAIL -10
 
+/* HCI Event = 04(HCI Type : 1 byte) + Event Code(1 byte) + Patameter(MAX is 0xFF : 255 bytes) */
+#define IO_BUF_SIZE	 257
+
 enum bt_sdio_dongle_state {
 	BT_SDIO_DONGLE_STATE_UNKNOWN,
 	BT_SDIO_DONGLE_STATE_POWER_ON,
@@ -210,6 +213,9 @@ struct btmtk_sdio_card {
 	unsigned char		*woble_setting_file_name;
 
 	unsigned int		chip_id;
+	/* io buffer for event compare */
+	unsigned char	*io_buf;
+
 	struct fw_cfg_struct		woble_setting_apcf[WOBLE_SETTING_COUNT];
 	struct fw_cfg_struct		woble_setting_apcf_fill_mac[WOBLE_SETTING_COUNT];
 	struct fw_cfg_struct		woble_setting_apcf_fill_mac_location[WOBLE_SETTING_COUNT];
