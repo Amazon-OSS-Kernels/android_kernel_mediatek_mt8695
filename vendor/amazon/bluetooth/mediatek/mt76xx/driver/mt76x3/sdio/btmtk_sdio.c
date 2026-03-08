@@ -73,7 +73,6 @@ static struct fasync_struct *fasync;
 /*static int btmtk_woble_state = BTMTK_WOBLE_STATE_UNKNOWN;*/
 
 static int need_reset_stack;
-static int need_reset_stack_type;
 static int get_hci_reset;
 static int need_reopen;
 static int wlan_remove_done;
@@ -4996,8 +4995,7 @@ int btmtk_sdio_bt_trigger_core_dump(int trigger_dump)
 			BTMTK_ERR("not support chip reset!");
 		}
 	}
-	if (need_reset_stack_type == HW_ERR_NONE)
-		need_reset_stack_type = HW_ERR_CODE_WIFI;
+
 	return 1;
 }
 EXPORT_SYMBOL(btmtk_sdio_bt_trigger_core_dump);
@@ -5034,9 +5032,7 @@ int btmtk_sdio_driver_reset_dongle(void)
 		return -1;
 	}
 
-	if (need_reset_stack_type == HW_ERR_NONE)
-		need_reset_stack_type = HW_ERR_CODE_BT_DRIVER;
-
+	need_reset_stack = 1;
 	wlan_remove_done = 0;
 
 retry_reset:
@@ -5224,12 +5220,7 @@ static int btmtk_sdio_L0_probe(struct sdio_func *func,
 	/* Now, ready to branch onto true sdio card probe. */
 	ret = btmtk_sdio_probe(func, id);
 
-	if (need_reset_stack_type != HW_ERR_NONE)
-		need_reset_stack = need_reset_stack_type;
-	else {
-		BTMTK_INFO("need_reset_stack is HW_ERR_NONE when do chip reset");
-		need_reset_stack = HW_ERR_CODE_BT_DRIVER;
-	}
+	need_reset_stack = 1;
 	BTMTK_INFO("need_reset_stack %d probe_ret %d", need_reset_stack, ret);
 	wake_up_interruptible(&inq);
 	return ret;
@@ -5337,9 +5328,6 @@ int btmtk_sdio_host_reset_dongle(void)
 		BTMTK_ERR(L0_RESET_TAG "data corrupted");
 		goto rst_dongle_done;
 	}
-
-	if (need_reset_stack_type == HW_ERR_NONE)
-		need_reset_stack_type = HW_ERR_CODE_BT_DRIVER;
 
 	wlan_remove_done = 0;
 
@@ -5776,8 +5764,7 @@ static void btmtk_sdio_remove(struct sdio_func *func)
 				kfree(card->bin_file_buffer);
 				card->bin_file_buffer = NULL;
 			}
-			if (need_reset_stack == HW_ERR_NONE)
-				need_reset_stack = HW_ERR_CODE_CARD_DISC;
+			need_reset_stack = 1;
 		}
 	}
 	BTMTK_INFO("end");
@@ -6503,8 +6490,6 @@ static int btmtk_fops_open(struct inode *inode, struct file *file)
 
 	if (btmtk_sdio_send_init_cmds(g_card)) {
 		BTMTK_ERR("send init failed, do reset");
-		if (need_reset_stack_type == HW_ERR_NONE)
-			need_reset_stack_type = HW_ERR_CODE_BT_DRIVER;
 		btmtk_sdio_bt_trigger_core_dump(0);
 		FOPS_MUTEX_LOCK();
 		btmtk_fops_set_state(BTMTK_FOPS_STATE_CLOSED);
@@ -6515,8 +6500,6 @@ static int btmtk_fops_open(struct inode *inode, struct file *file)
 	if (is_support_unify_woble(g_card)) {
 		if (btmtk_sdio_send_apcf_reserved()){
 			BTMTK_ERR("send apcf failed, do reset");
-			if (need_reset_stack_type == HW_ERR_NONE)
-				need_reset_stack_type = HW_ERR_CODE_BT_DRIVER;
 			btmtk_sdio_bt_trigger_core_dump(0);
 			FOPS_MUTEX_LOCK();
 			btmtk_fops_set_state(BTMTK_FOPS_STATE_CLOSED);
@@ -6531,8 +6514,7 @@ static int btmtk_fops_open(struct inode *inode, struct file *file)
 	btmtk_fops_set_state(BTMTK_FOPS_STATE_OPENED);
 	FOPS_MUTEX_UNLOCK();
 
-	need_reset_stack = HW_ERR_NONE;
-	need_reset_stack_type = HW_ERR_NONE;
+	need_reset_stack = 0;
 	need_reopen = 0;
 #ifdef MTK_TURNKEY
 	stereo_irq = -1;
@@ -6743,11 +6725,8 @@ ssize_t btmtk_fops_write(struct file *filp, const char __user *buf,
 		u8 read_ver_cmd[] = { 0x01, 0x10, 0x00 };
 
 		if (skb->len == sizeof(fw_assert_cmd) &&
-			!memcmp(&skb->data[0], fw_assert_cmd, sizeof(fw_assert_cmd))) {
+			!memcmp(&skb->data[0], fw_assert_cmd, sizeof(fw_assert_cmd)))
 			BTMTK_INFO("Donge FW Assert Triggered by upper layer");
-			if (need_reset_stack_type != HW_ERR_NONE)
-				need_reset_stack_type = HW_ERR_CODE_BT_HOST;
-		}
 		else if (skb->len == sizeof(reset_cmd) &&
 			!memcmp(&skb->data[0], reset_cmd, sizeof(reset_cmd)))
 			BTMTK_INFO("got command: 0x03 0C 00 (HCI_RESET)");
@@ -6794,7 +6773,7 @@ ssize_t btmtk_fops_read(struct file *filp, char __user *buf,
 
 	FOPS_MUTEX_LOCK();
 	fops_state = btmtk_fops_get_state();
-	if ((fops_state != BTMTK_FOPS_STATE_OPENED) && (need_reset_stack == HW_ERR_NONE)) {
+	if ((fops_state != BTMTK_FOPS_STATE_OPENED) && (need_reset_stack == 0)) {
 		BTMTK_ERR("fops_state is %d", fops_state);
 		FOPS_MUTEX_UNLOCK();
 		return -EFAULT;
@@ -6808,9 +6787,8 @@ ssize_t btmtk_fops_read(struct file *filp, char __user *buf,
 
 	down(&g_priv->rd_mtx);
 
-	if (need_reset_stack != HW_ERR_NONE) {
+	if (need_reset_stack == 1) {
 		BTMTK_WARN("Reset BT stack, go if send_hw_err_event_count %d", send_hw_err_event_count);
-		hwerr_event[3] = need_reset_stack;
 		if (send_hw_err_event_count < sizeof(hwerr_event)) {
 			if (count < (sizeof(hwerr_event) - send_hw_err_event_count)) {
 				copyLen = count;
@@ -6830,8 +6808,7 @@ ssize_t btmtk_fops_read(struct file *filp, char __user *buf,
 			if (send_hw_err_event_count >= sizeof(hwerr_event)) {
 				send_hw_err_event_count  = 0;
 				BTMTK_WARN("set need_reset_stack=0");
-				need_reset_stack = HW_ERR_NONE;
-				need_reset_stack_type = HW_ERR_NONE;
+				need_reset_stack = 0;
 				need_reopen = 1;
 				kill_fasync(&fasync, SIGIO, POLL_IN);
 			}
@@ -6873,10 +6850,9 @@ ssize_t btmtk_fops_read(struct file *filp, char __user *buf,
 		}
 	}
 
-	if (need_reset_stack != HW_ERR_NONE) {
+	if (need_reset_stack == 1) {
 		kill_fasync(&fasync, SIGIO, POLL_IN);
-		need_reset_stack = HW_ERR_NONE;
-		need_reset_stack_type = HW_ERR_NONE;
+		need_reset_stack = 0;
 		BTMTK_ERR("Call kill_fasync and set reset_stack 0");
 		UNLOCK_UNSLEEPABLE_LOCK(&(metabuffer.spin_lock));
 		up(&g_priv->rd_mtx);
