@@ -1462,7 +1462,9 @@ int hid_report_raw_event(struct hid_device *hid, int type, u8 *data, int size,
 
 	rsize = ((report->size - 1) >> 3) + 1;
 
-	if (rsize > HID_MAX_BUFFER_SIZE)
+	if (report_enum->numbered && rsize >= HID_MAX_BUFFER_SIZE)
+		rsize = HID_MAX_BUFFER_SIZE - 1;
+	else if (rsize > HID_MAX_BUFFER_SIZE)
 		rsize = HID_MAX_BUFFER_SIZE;
 
 	if (csize < rsize) {
@@ -2107,8 +2109,8 @@ static const struct hid_device_id hid_have_special_driver[] = {
 	{ HID_USB_DEVICE(BT_VENDOR_ID_LAB126, BT_DEVICE_ID_LAB126_abs123) },
 	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_US_KB) },
 	{ HID_BLUETOOTH_DEVICE(USB_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_UK_KB) },
-	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_ASPEN_KB_US) },
-	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_ASPEN_KB_UK) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_acc123_KB_US) },
+	{ HID_BLUETOOTH_DEVICE(BT_VENDOR_ID_LAB126, USB_DEVICE_ID_LAB126_acc123_KB_UK) },
 	{ }
 };
 

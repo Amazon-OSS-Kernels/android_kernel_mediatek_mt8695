@@ -6,7 +6,7 @@
  * to take benefits of ring_buffer's buffer management.
  * For more information, please refer to Documentation/amazon/amazon_logger.txt
  *
- * Portions copyright 2016-2017 Amazon Technologies, Inc. All Rights Reserved.
+ * Portions copyright 2016-2022 Amazon Technologies, Inc. All Rights Reserved.
  *
  * drivers/misc/logger.c
  *
@@ -157,6 +157,32 @@ static int logger_kernel_write(struct ring_buffer *buf,
 	return 0;
 }
 
+static int log_to_vitals(enum android_log_priority priority,
+	const char *domain, const char *log_msg)
+{
+	int ret = -EINVAL;
+
+	if (metrics_init != 0 && log_msg != NULL) {
+		struct iovec vec[3];
+
+		if (domain == NULL)
+			domain = "kernel";
+
+		vec[0].iov_base = (unsigned char *)&priority;
+		vec[0].iov_len  = 1;
+
+		vec[1].iov_base = (void *)domain;
+		vec[1].iov_len  = strlen(domain) + 1;
+
+		vec[2].iov_base = (void *)log_msg;
+		vec[2].iov_len  = strlen(log_msg) + 1;
+
+		ret = logger_kernel_write(vitals_logger->buf, vec, 3);
+	}
+	return ret;
+}
+
+#ifdef CONFIG_AMAZON_METRICS_LOG
 /**
  * log_to_metrics - add a metric message to metrics log buffer
  * @priority: the Android priority of the message
@@ -196,31 +222,6 @@ int log_to_metrics(enum android_log_priority priority,
 	return ret;
 }
 EXPORT_SYMBOL(log_to_metrics);
-
-static int log_to_vitals(enum android_log_priority priority,
-	const char *domain, const char *log_msg)
-{
-	int ret = -EINVAL;
-
-	if (metrics_init != 0 && log_msg != NULL) {
-		struct iovec vec[3];
-
-		if (domain == NULL)
-			domain = "kernel";
-
-		vec[0].iov_base = (unsigned char *)&priority;
-		vec[0].iov_len  = 1;
-
-		vec[1].iov_base = (void *)domain;
-		vec[1].iov_len  = strlen(domain) + 1;
-
-		vec[2].iov_base = (void *)log_msg;
-		vec[2].iov_len  = strlen(log_msg) + 1;
-
-		ret = logger_kernel_write(vitals_logger->buf, vec, 3);
-	}
-	return ret;
-}
 
 /**
  * log_counter_to_vitals - add a counter message to vitals log buffer
@@ -302,7 +303,24 @@ int log_timer_to_vitals(enum android_log_priority priority,
 	return log_to_vitals(priority, domain, str);
 }
 EXPORT_SYMBOL(log_timer_to_vitals);
+#else
+int log_to_metrics(enum android_log_priority priority,
+        const char *domain, char *logmsg) { return -1; };
+EXPORT_SYMBOL(log_to_metrics);
 
+int log_counter_to_vitals(enum android_log_priority priority,
+        const char *domain, const char *program,
+        const char *source, const char *key,
+        long counter_value, const char *unit,
+        const char *metadata, vitals_type type) { return -1; };
+EXPORT_SYMBOL(log_counter_to_vitals);
+
+int log_timer_to_vitals(enum android_log_priority priority,
+        const char *domain, const char *program,
+        const char *source, const char *key,
+        long timer_value, const char *unit, vitals_type type) { return -1; };
+EXPORT_SYMBOL(log_timer_to_vitals);
+#endif /* CONFIG_AMAZON_METRICS_LOG */
 
 static struct amazon_logger *get_log_from_minor(int minor)
 {
