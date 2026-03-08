@@ -73,6 +73,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define PMR_MAX_TRANSLATION_STACK_ALLOC				(32)
 
+/* Maximum number of pages a PMR can have is 1G of memory */
+#define PMR_MAX_SUPPORTED_PAGE_COUNT				(262144)
+
 typedef IMG_UINT64 PMR_BASE_T;
 typedef IMG_UINT64 PMR_SIZE_T;
 #define PMR_SIZE_FMTSPEC "0x%010llX"
@@ -532,11 +535,13 @@ PMR_Flags(const PMR *psPMR);
 extern IMG_BOOL
 PMR_IsSparse(const PMR *psPMR);
 
-
-
 extern PVRSRV_ERROR
 PMR_LogicalSize(const PMR *psPMR,
 				IMG_DEVMEM_SIZE_T *puiLogicalSize);
+
+extern PVRSRV_ERROR
+PMR_PhysicalSize(const PMR *psPMR,
+				 IMG_DEVMEM_SIZE_T *puiPhysicalSize);
 
 extern PHYS_HEAP *
 PMR_PhysHeap(const PMR *psPMR);
