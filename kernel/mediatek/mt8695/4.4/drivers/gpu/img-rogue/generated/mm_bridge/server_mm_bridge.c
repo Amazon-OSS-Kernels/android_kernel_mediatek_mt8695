@@ -187,7 +187,7 @@ PVRSRVBridgePMRExportPMR(IMG_UINT32 ui32DispatchTableEntry,
 		{
 
 			PVRSRV_ERROR eError =
-			    PVRSRVDestroyHandleUnlocked(KERNEL_HANDLE_BASE,
+			    PVRSRVReleaseHandleUnlocked(KERNEL_HANDLE_BASE,
 							(IMG_HANDLE)
 							psPMRExportPMROUT->
 							hPMRExport,
@@ -209,7 +209,7 @@ PVRSRVBridgePMRExportPMR(IMG_UINT32 ui32DispatchTableEntry,
 		if (hPMRExportInt)
 		{
 			PVRSRV_ERROR eError =
-			    PVRSRVDestroyHandleUnlocked(psConnection->
+			    PVRSRVReleaseHandleUnlocked(psConnection->
 							psProcessHandleBase->
 							psHandleBase,
 							hPMRExportInt,
@@ -290,7 +290,7 @@ PVRSRVBridgePMRUnexportPMR(IMG_UINT32 ui32DispatchTableEntry,
 	PVR_ASSERT(psPMRUnexportPMROUT->eError == PVRSRV_OK);
 
 	psPMRUnexportPMROUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psProcessHandleBase->
+	    PVRSRVReleaseHandleUnlocked(psConnection->psProcessHandleBase->
 					psHandleBase, hPMRExportInt,
 					PVRSRV_HANDLE_TYPE_PHYSMEM_PMR_EXPORT);
 	if ((psPMRUnexportPMROUT->eError != PVRSRV_OK)
@@ -304,7 +304,7 @@ PVRSRVBridgePMRUnexportPMR(IMG_UINT32 ui32DispatchTableEntry,
 		   (psPMRUnexportPMROUT->eError == PVRSRV_ERROR_RETRY));
 
 	psPMRUnexportPMROUT->eError =
-	    PVRSRVDestroyHandleUnlocked(KERNEL_HANDLE_BASE,
+	    PVRSRVReleaseHandleUnlocked(KERNEL_HANDLE_BASE,
 					(IMG_HANDLE) psPMRUnexportPMRIN->
 					hPMRExport,
 					PVRSRV_HANDLE_TYPE_PHYSMEM_PMR_EXPORT);
@@ -471,7 +471,7 @@ PVRSRVBridgePMRUnmakeLocalImportHandle(IMG_UINT32 ui32DispatchTableEntry,
 	LockHandle();
 
 	psPMRUnmakeLocalImportHandleOUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psProcessHandleBase->
+	    PVRSRVReleaseHandleUnlocked(psConnection->psProcessHandleBase->
 					psHandleBase,
 					(IMG_HANDLE)
 					psPMRUnmakeLocalImportHandleIN->hExtMem,
@@ -677,7 +677,7 @@ PVRSRVBridgePMRUnrefPMR(IMG_UINT32 ui32DispatchTableEntry,
 	LockHandle();
 
 	psPMRUnrefPMROUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+	    PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE) psPMRUnrefPMRIN->hPMR,
 					PVRSRV_HANDLE_TYPE_PHYSMEM_PMR);
 	if ((psPMRUnrefPMROUT->eError != PVRSRV_OK) &&
@@ -711,7 +711,7 @@ PVRSRVBridgePMRUnrefUnlockPMR(IMG_UINT32 ui32DispatchTableEntry,
 	LockHandle();
 
 	psPMRUnrefUnlockPMROUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+	    PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE) psPMRUnrefUnlockPMRIN->
 					hPMR, PVRSRV_HANDLE_TYPE_PHYSMEM_PMR);
 	if ((psPMRUnrefUnlockPMROUT->eError != PVRSRV_OK)
@@ -751,21 +751,11 @@ PVRSRVBridgePhysmemNewRamBackedPMR(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-	    ((IMG_UINT64) psPhysmemNewRamBackedPMRIN->ui32NumPhysChunks *
+	IMG_UINT32 ui32BufferSize =
+	    (psPhysmemNewRamBackedPMRIN->ui32NumPhysChunks *
 	     sizeof(IMG_UINT32)) +
-	    ((IMG_UINT64) psPhysmemNewRamBackedPMRIN->ui32AnnotationLength *
+	    (psPhysmemNewRamBackedPMRIN->ui32AnnotationLength *
 	     sizeof(IMG_CHAR)) + 0;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psPhysmemNewRamBackedPMROUT->eError =
-		    PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto PhysmemNewRamBackedPMR_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -906,10 +896,7 @@ PVRSRVBridgePhysmemNewRamBackedPMR(IMG_UINT32 ui32DispatchTableEntry,
 	}
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if (psPhysmemNewRamBackedPMROUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if (pArrayArgsBuffer)
@@ -939,21 +926,11 @@ PVRSRVBridgePhysmemNewRamBackedLockedPMR(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-	    ((IMG_UINT64) psPhysmemNewRamBackedLockedPMRIN->ui32NumVirtChunks *
+	IMG_UINT32 ui32BufferSize =
+	    (psPhysmemNewRamBackedLockedPMRIN->ui32NumVirtChunks *
 	     sizeof(IMG_UINT32)) +
-	    ((IMG_UINT64) psPhysmemNewRamBackedLockedPMRIN->
-	     ui32AnnotationLength * sizeof(IMG_CHAR)) + 0;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psPhysmemNewRamBackedLockedPMROUT->eError =
-		    PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto PhysmemNewRamBackedLockedPMR_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
+	    (psPhysmemNewRamBackedLockedPMRIN->ui32AnnotationLength *
+	     sizeof(IMG_CHAR)) + 0;
 
 	if (ui32BufferSize != 0)
 	{
@@ -1099,10 +1076,7 @@ PVRSRVBridgePhysmemNewRamBackedLockedPMR(IMG_UINT32 ui32DispatchTableEntry,
 	}
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if (psPhysmemNewRamBackedLockedPMROUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if (pArrayArgsBuffer)
@@ -1479,7 +1453,7 @@ PVRSRVBridgeDevmemIntCtxCreate(IMG_UINT32 ui32DispatchTableEntry,
 		{
 
 			PVRSRV_ERROR eError =
-			    PVRSRVDestroyHandleUnlocked(psConnection->
+			    PVRSRVReleaseHandleUnlocked(psConnection->
 							psHandleBase,
 							(IMG_HANDLE)
 							psDevmemIntCtxCreateOUT->
@@ -1525,7 +1499,7 @@ PVRSRVBridgeDevmemIntCtxDestroy(IMG_UINT32 ui32DispatchTableEntry,
 	LockHandle();
 
 	psDevmemIntCtxDestroyOUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+	    PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE) psDevmemIntCtxDestroyIN->
 					hDevmemServerContext,
 					PVRSRV_HANDLE_TYPE_DEVMEMINT_CTX);
@@ -1649,7 +1623,7 @@ PVRSRVBridgeDevmemIntHeapDestroy(IMG_UINT32 ui32DispatchTableEntry,
 	LockHandle();
 
 	psDevmemIntHeapDestroyOUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+	    PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE) psDevmemIntHeapDestroyIN->
 					hDevmemHeap,
 					PVRSRV_HANDLE_TYPE_DEVMEMINT_HEAP);
@@ -1817,7 +1791,7 @@ PVRSRVBridgeDevmemIntUnmapPMR(IMG_UINT32 ui32DispatchTableEntry,
 	LockHandle();
 
 	psDevmemIntUnmapPMROUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+	    PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE) psDevmemIntUnmapPMRIN->
 					hMapping,
 					PVRSRV_HANDLE_TYPE_DEVMEMINT_MAPPING);
@@ -1941,7 +1915,7 @@ PVRSRVBridgeDevmemIntUnreserveRange(IMG_UINT32 ui32DispatchTableEntry,
 	LockHandle();
 
 	psDevmemIntUnreserveRangeOUT->eError =
-	    PVRSRVDestroyHandleUnlocked(psConnection->psHandleBase,
+	    PVRSRVReleaseHandleUnlocked(psConnection->psHandleBase,
 					(IMG_HANDLE)
 					psDevmemIntUnreserveRangeIN->
 					hReservation,
@@ -1986,21 +1960,9 @@ PVRSRVBridgeChangeSparseMem(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-	    ((IMG_UINT64) psChangeSparseMemIN->ui32AllocPageCount *
-	     sizeof(IMG_UINT32)) +
-	    ((IMG_UINT64) psChangeSparseMemIN->ui32FreePageCount *
-	     sizeof(IMG_UINT32)) + 0;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psChangeSparseMemOUT->eError =
-		    PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto ChangeSparseMem_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
+	IMG_UINT32 ui32BufferSize =
+	    (psChangeSparseMemIN->ui32AllocPageCount * sizeof(IMG_UINT32)) +
+	    (psChangeSparseMemIN->ui32FreePageCount * sizeof(IMG_UINT32)) + 0;
 
 	if (ui32BufferSize != 0)
 	{
@@ -2155,10 +2117,7 @@ PVRSRVBridgeChangeSparseMem(IMG_UINT32 ui32DispatchTableEntry,
 	UnlockHandle();
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if (psChangeSparseMemOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if (pArrayArgsBuffer)
@@ -2404,22 +2363,12 @@ PVRSRVBridgeHeapCfgHeapConfigName(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-	    ((IMG_UINT64) psHeapCfgHeapConfigNameIN->ui32HeapConfigNameBufSz *
+	IMG_UINT32 ui32BufferSize =
+	    (psHeapCfgHeapConfigNameIN->ui32HeapConfigNameBufSz *
 	     sizeof(IMG_CHAR)) + 0;
 
 	psHeapCfgHeapConfigNameOUT->puiHeapConfigName =
 	    psHeapCfgHeapConfigNameIN->puiHeapConfigName;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psHeapCfgHeapConfigNameOUT->eError =
-		    PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto HeapCfgHeapConfigName_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -2472,11 +2421,6 @@ PVRSRVBridgeHeapCfgHeapConfigName(IMG_UINT32 ui32DispatchTableEntry,
 				  psHeapCfgHeapConfigNameIN->
 				  ui32HeapConfigNameBufSz,
 				  puiHeapConfigNameInt);
-	/* Exit early if bridged call fails */
-	if (psHeapCfgHeapConfigNameOUT->eError != PVRSRV_OK)
-	{
-		goto HeapCfgHeapConfigName_exit;
-	}
 
 	if ((psHeapCfgHeapConfigNameIN->ui32HeapConfigNameBufSz *
 	     sizeof(IMG_CHAR)) > 0)
@@ -2498,10 +2442,7 @@ PVRSRVBridgeHeapCfgHeapConfigName(IMG_UINT32 ui32DispatchTableEntry,
  HeapCfgHeapConfigName_exit:
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if (psHeapCfgHeapConfigNameOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if (pArrayArgsBuffer)
@@ -2529,22 +2470,11 @@ PVRSRVBridgeHeapCfgHeapDetails(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-	    ((IMG_UINT64) psHeapCfgHeapDetailsIN->ui32HeapNameBufSz *
-	     sizeof(IMG_CHAR)) + 0;
+	IMG_UINT32 ui32BufferSize =
+	    (psHeapCfgHeapDetailsIN->ui32HeapNameBufSz * sizeof(IMG_CHAR)) + 0;
 
 	psHeapCfgHeapDetailsOUT->puiHeapNameOut =
 	    psHeapCfgHeapDetailsIN->puiHeapNameOut;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psHeapCfgHeapDetailsOUT->eError =
-		    PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto HeapCfgHeapDetails_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
 
 	if (ui32BufferSize != 0)
 	{
@@ -2604,11 +2534,6 @@ PVRSRVBridgeHeapCfgHeapDetails(IMG_UINT32 ui32DispatchTableEntry,
 			       ui32Log2ImportAlignmentOut,
 			       &psHeapCfgHeapDetailsOUT->
 			       ui32Log2TilingStrideFactorOut);
-	/* Exit early if bridged call fails */
-	if (psHeapCfgHeapDetailsOUT->eError != PVRSRV_OK)
-	{
-		goto HeapCfgHeapDetails_exit;
-	}
 
 	if ((psHeapCfgHeapDetailsIN->ui32HeapNameBufSz * sizeof(IMG_CHAR)) > 0)
 	{
@@ -2629,10 +2554,7 @@ PVRSRVBridgeHeapCfgHeapDetails(IMG_UINT32 ui32DispatchTableEntry,
  HeapCfgHeapDetails_exit:
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if (psHeapCfgHeapDetailsOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if (pArrayArgsBuffer)

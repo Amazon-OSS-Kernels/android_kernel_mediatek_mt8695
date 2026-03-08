@@ -83,19 +83,8 @@ PVRSRVBridgePhysmemImportDmaBuf(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-	    ((IMG_UINT64) psPhysmemImportDmaBufIN->ui32NameSize *
-	     sizeof(IMG_CHAR)) + 0;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psPhysmemImportDmaBufOUT->eError =
-		    PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto PhysmemImportDmaBuf_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
+	IMG_UINT32 ui32BufferSize =
+	    (psPhysmemImportDmaBufIN->ui32NameSize * sizeof(IMG_CHAR)) + 0;
 
 	if (ui32BufferSize != 0)
 	{
@@ -201,10 +190,7 @@ PVRSRVBridgePhysmemImportDmaBuf(IMG_UINT32 ui32DispatchTableEntry,
 	}
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if (psPhysmemImportDmaBufOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if (pArrayArgsBuffer)
@@ -285,21 +271,11 @@ PVRSRVBridgePhysmemImportSparseDmaBuf(IMG_UINT32 ui32DispatchTableEntry,
 	IMG_BOOL bHaveEnoughSpace = IMG_FALSE;
 #endif
 
-	IMG_UINT32 ui32BufferSize = 0;
-	IMG_UINT64 ui64BufferSize =
-	    ((IMG_UINT64) psPhysmemImportSparseDmaBufIN->ui32NumPhysChunks *
+	IMG_UINT32 ui32BufferSize =
+	    (psPhysmemImportSparseDmaBufIN->ui32NumPhysChunks *
 	     sizeof(IMG_UINT32)) +
-	    ((IMG_UINT64) psPhysmemImportSparseDmaBufIN->ui32NameSize *
-	     sizeof(IMG_CHAR)) + 0;
-
-	if (ui64BufferSize > IMG_UINT32_MAX)
-	{
-		psPhysmemImportSparseDmaBufOUT->eError =
-		    PVRSRV_ERROR_BRIDGE_BUFFER_TOO_SMALL;
-		goto PhysmemImportSparseDmaBuf_exit;
-	}
-
-	ui32BufferSize = (IMG_UINT32) ui64BufferSize;
+	    (psPhysmemImportSparseDmaBufIN->ui32NameSize * sizeof(IMG_CHAR)) +
+	    0;
 
 	if (ui32BufferSize != 0)
 	{
@@ -439,10 +415,7 @@ PVRSRVBridgePhysmemImportSparseDmaBuf(IMG_UINT32 ui32DispatchTableEntry,
 	}
 
 	/* Allocated space should be equal to the last updated offset */
-#ifdef PVRSRV_NEED_PVR_ASSERT
-	if (psPhysmemImportSparseDmaBufOUT->eError == PVRSRV_OK)
-		PVR_ASSERT(ui32BufferSize == ui32NextOffset);
-#endif /* PVRSRV_NEED_PVR_ASSERT */
+	PVR_ASSERT(ui32BufferSize == ui32NextOffset);
 
 #if defined(INTEGRITY_OS)
 	if (pArrayArgsBuffer)

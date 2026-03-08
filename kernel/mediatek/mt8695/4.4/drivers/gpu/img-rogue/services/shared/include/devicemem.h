@@ -615,11 +615,11 @@ IMG_INTERNAL PVRSRV_ERROR
 DevmemGetFlags(DEVMEM_MEMDESC *psMemDesc,
 				DEVMEM_FLAGS_T *puiFlags);
 
-IMG_INTERNAL SHARED_DEV_CONNECTION
+IMG_INTERNAL IMG_HANDLE
 DevmemGetConnection(DEVMEM_MEMDESC *psMemDesc);
 
 PVRSRV_ERROR
-DevmemLocalImport(SHARED_DEV_CONNECTION hDevConnection,
+DevmemLocalImport(IMG_HANDLE hBridge,
 				  IMG_HANDLE hExtHandle,
 				  DEVMEM_FLAGS_T uiFlags,
 				  DEVMEM_MEMDESC **ppsMemDescPtr,

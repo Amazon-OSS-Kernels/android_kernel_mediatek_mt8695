@@ -850,17 +850,6 @@ int disp_hw_mgr_config(struct mtk_disp_config *config)
 
 	_disp_mutex_lock();
 
-	for (i = 0; i < DISP_BUFFER_MAX; i++) {
-		if (config->buffer_info[i].layer_id >= DISP_BUFFER_MAX) {
-			DISP_LOG_E("i=%d, wrong layer id=%u, type:%d\n",
-				i,
-				config->buffer_info[i].layer_id,
-				config->buffer_info[i].type);
-			_disp_mutex_unlock();
-			return -1;
-		}
-	}
-
 	mgr->common_info.osd_swap = 0;
 
 	DISP_MMP_STRUCT(MMP_DISP_HW, config, struct mtk_disp_config);

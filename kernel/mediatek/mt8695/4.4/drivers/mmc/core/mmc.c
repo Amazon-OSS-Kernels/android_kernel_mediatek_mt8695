@@ -20,6 +20,13 @@
 #include <linux/mmc/card.h>
 #include <linux/mmc/mmc.h>
 
+#ifdef CONFIG_AMAZON_METRICS_LOG
+#include <linux/metricslog.h>
+#include <linux/vmalloc.h>
+#define LMK_METRIC_TAG "kernel"
+#define METRICS_LIFETIME_DATA_LEN 128
+#endif
+
 #include "core.h"
 #include "host.h"
 #include "bus.h"
@@ -368,6 +375,10 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	struct device_node *np;
 	bool broken_hpi = false;
 
+#ifdef CONFIG_AMAZON_METRICS_LOG
+	char *buf;
+#endif
+
 	/* Version is coded in the CSD_STRUCTURE byte in the EXT_CSD register */
 	card->ext_csd.raw_ext_csd_structure = ext_csd[EXT_CSD_STRUCTURE];
 	if (card->csd.structure == 3) {
@@ -623,6 +634,18 @@ static int mmc_decode_ext_csd(struct mmc_card *card, u8 *ext_csd)
 
 		pr_info("[%s]: Device life time estimation type A:%x, life time estimation type B:%x\n", __func__,
 						card->ext_csd.device_life_time_est_typ_a, card->ext_csd.device_life_time_est_typ_b);
+#ifdef CONFIG_AMAZON_METRICS_LOG
+		buf = vmalloc(METRICS_LIFETIME_DATA_LEN * sizeof(char));
+		if(buf != NULL){
+			snprintf(buf, METRICS_LIFETIME_DATA_LEN,
+				"emmc:info:est_life_time_type_a_%x=1, est_life_time_type_b_%x=1;CT;1:NR",
+				card->ext_csd.device_life_time_est_typ_a, card->ext_csd.device_life_time_est_typ_b);
+			log_to_metrics(ANDROID_LOG_INFO, LMK_METRIC_TAG, buf);
+			vfree(buf);
+		} else {
+			pr_warn("allocate metrics buf error for emmc");
+		}
+#endif
 	}
 out:
 	return err;
@@ -753,6 +776,10 @@ MMC_DEV_ATTR(name, "%s\n", card->cid.prod_name);
 MMC_DEV_ATTR(oemid, "0x%04x\n", card->cid.oemid);
 MMC_DEV_ATTR(prv, "0x%x\n", card->cid.prv);
 MMC_DEV_ATTR(rev, "0x%x\n", card->ext_csd.rev);
+MMC_DEV_ATTR(pre_eol_info, "%02x\n", card->ext_csd.pre_eol_info);
+MMC_DEV_ATTR(life_time, "0x%02x 0x%02x\n",
+	card->ext_csd.device_life_time_est_typ_a,
+	card->ext_csd.device_life_time_est_typ_b);
 MMC_DEV_ATTR(serial, "0x%08x\n", card->cid.serial);
 MMC_DEV_ATTR(enhanced_area_offset, "%llu\n",
 		card->ext_csd.enhanced_area_offset);
@@ -775,78 +802,6 @@ static ssize_t mmc_fwrev_show(struct device *dev,
 }
 
 static DEVICE_ATTR(fwrev, S_IRUGO, mmc_fwrev_show, NULL);
-
-static ssize_t mmc_life_time_show(struct device *dev,
-			    struct device_attribute *attr,
-			    char *buf)
-{
-	struct mmc_card *card = mmc_dev_to_card(dev);
-	u8 *ext_csd;
-	int err = 0;
-
-	mmc_claim_host(card->host);
-
-	if (!mmc_can_ext_csd(card)) {
-		mmc_release_host(card->host);
-		return 0;
-	}
-
-	err = mmc_get_ext_csd(card, &ext_csd);
-	if (err) {
-		if (ext_csd)
-			kfree(ext_csd);
-
-		mmc_release_host(card->host);
-		return err;
-	}
-
-	card->ext_csd.device_life_time_est_typ_a =
-			ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A];
-	card->ext_csd.device_life_time_est_typ_b =
-			ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B];
-
-	kfree(ext_csd);
-	mmc_release_host(card->host);
-	return sprintf(buf, "0x%02x 0x%02x\n",
-			card->ext_csd.device_life_time_est_typ_a,
-			card->ext_csd.device_life_time_est_typ_b);
-}
-
-static DEVICE_ATTR(life_time, S_IRUGO, mmc_life_time_show, NULL);
-
-static ssize_t mmc_pre_eol_info_show(struct device *dev,
-			    struct device_attribute *attr,
-			    char *buf)
-{
-	struct mmc_card *card = mmc_dev_to_card(dev);
-	u8 *ext_csd;
-	int err = 0;
-
-	mmc_claim_host(card->host);
-
-	if (!mmc_can_ext_csd(card)) {
-		mmc_release_host(card->host);
-		return 0;
-	}
-
-	err = mmc_get_ext_csd(card, &ext_csd);
-	if (err) {
-		if (ext_csd)
-			kfree(ext_csd);
-
-		mmc_release_host(card->host);
-		return err;
-	}
-
-	card->ext_csd.pre_eol_info = ext_csd[EXT_CSD_PRE_EOL_INFO];
-
-	kfree(ext_csd);
-	mmc_release_host(card->host);
-	return sprintf(buf, "0x%02x\n",
-			card->ext_csd.pre_eol_info);
-}
-
-static DEVICE_ATTR(pre_eol_info, S_IRUGO, mmc_pre_eol_info_show, NULL);
 
 static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_cid.attr,

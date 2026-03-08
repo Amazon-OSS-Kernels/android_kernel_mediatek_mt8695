@@ -186,7 +186,7 @@ SyncPrimNoHwUpdate(PVRSRV_CLIENT_SYNC_PRIM *psSync, IMG_UINT32 ui32Value);
 #endif
 
 PVRSRV_ERROR
-SyncPrimServerAlloc(SYNC_BRIDGE_HANDLE hBridge,
+SyncPrimServerAlloc(SHARED_DEV_CONNECTION hDevConnection,
 					PVRSRV_CLIENT_SYNC_PRIM **ppsSync,
 					const IMG_CHAR		*pszClassName
 					PVR_DBG_FILELINE_PARAM);

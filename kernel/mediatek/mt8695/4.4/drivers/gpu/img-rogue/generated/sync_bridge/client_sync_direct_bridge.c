@@ -71,8 +71,8 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeAllocSyncPrimitiveBlock(IMG_HANDLE
 								     phhSyncPMR)
 {
 	PVRSRV_ERROR eError;
-	SYNC_PRIMITIVE_BLOCK *psSyncHandleInt = NULL;
-	PMR *pshSyncPMRInt = NULL;
+	SYNC_PRIMITIVE_BLOCK *psSyncHandleInt;
+	PMR *pshSyncPMRInt;
 
 	eError =
 	    PVRSRVAllocSyncPrimitiveBlockKM(NULL,
@@ -149,7 +149,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeServerSyncAlloc(IMG_HANDLE hBridge,
 							     puiClassName)
 {
 	PVRSRV_ERROR eError;
-	SERVER_SYNC_PRIMITIVE *psSyncHandleInt = NULL;
+	SERVER_SYNC_PRIMITIVE *psSyncHandleInt;
 
 	eError =
 	    PVRSRVServerSyncAllocKM(NULL,
@@ -254,7 +254,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeSyncPrimOpCreate(IMG_HANDLE
 	PVRSRV_ERROR eError;
 	SYNC_PRIMITIVE_BLOCK **psBlockListInt;
 	SERVER_SYNC_PRIMITIVE **psServerSyncInt;
-	SERVER_OP_COOKIE *psServerCookieInt = NULL;
+	SERVER_OP_COOKIE *psServerCookieInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	psBlockListInt = (SYNC_PRIMITIVE_BLOCK **) phBlockList;

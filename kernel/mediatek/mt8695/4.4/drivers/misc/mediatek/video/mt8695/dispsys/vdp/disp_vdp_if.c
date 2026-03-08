@@ -976,9 +976,6 @@ int disp_vdp_config(struct mtk_disp_buffer *config, struct disp_hw_common_info *
 	struct fence_data fence;
 	bool is_Y_C_independent = false;
 
-	if (!disp_vdp_check_layer_id(config->layer_id, __LINE__))
-		return VDP_FAIL;
-
 	config_buffer_count[config->layer_id]++;
 
 	if ((config->ion_fd >> 16) > 0)

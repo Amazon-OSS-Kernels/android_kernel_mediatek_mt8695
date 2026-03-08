@@ -2997,9 +2997,7 @@ PMRSysPhysAddrOSMem(PMR_IMPL_PRIVDATA pvPriv,
 			uiPageIndex = puiOffset[uiIdx] >> psOSPageArrayData->uiLog2AllocPageSize;
 			uiInPageOffset = puiOffset[uiIdx] - ((IMG_DEVMEM_OFFSET_T)uiPageIndex << psOSPageArrayData->uiLog2AllocPageSize);
 
-			PVR_LOGR_IF_FALSE(uiPageIndex < psOSPageArrayData->uiTotalNumOSPages,
-			                  "puiOffset out of range", PVRSRV_ERROR_OUT_OF_RANGE);
-
+			PVR_ASSERT(uiPageIndex < psOSPageArrayData->uiTotalNumOSPages);
 			PVR_ASSERT(uiInPageOffset < uiPageSize);
 
 			psDevPAddr[uiIdx].uiAddr = page_to_phys(psOSPageArrayData->pagearray[uiPageIndex]);

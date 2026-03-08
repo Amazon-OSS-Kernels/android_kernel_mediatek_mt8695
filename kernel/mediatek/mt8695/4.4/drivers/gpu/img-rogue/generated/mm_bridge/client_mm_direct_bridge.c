@@ -67,7 +67,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgePMRExportPMR(IMG_HANDLE hBridge,
 {
 	PVRSRV_ERROR eError;
 	PMR *psPMRInt;
-	PMR_EXPORT *psPMRExportInt = NULL;
+	PMR_EXPORT *psPMRExportInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	psPMRInt = (PMR *) hPMR;
@@ -121,7 +121,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgePMRMakeLocalImportHandle(IMG_HANDLE
 {
 	PVRSRV_ERROR eError;
 	PMR *psBufferInt;
-	PMR *psExtMemInt = NULL;
+	PMR *psExtMemInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	psBufferInt = (PMR *) hBuffer;
@@ -157,7 +157,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgePMRImportPMR(IMG_HANDLE hBridge,
 {
 	PVRSRV_ERROR eError;
 	PMR_EXPORT *psPMRExportInt;
-	PMR *psPMRInt = NULL;
+	PMR *psPMRInt;
 
 	psPMRExportInt = (PMR_EXPORT *) hPMRExport;
 
@@ -184,7 +184,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgePMRLocalImportPMR(IMG_HANDLE
 {
 	PVRSRV_ERROR eError;
 	PMR *psExtHandleInt;
-	PMR *psPMRInt = NULL;
+	PMR *psPMRInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	psExtHandleInt = (PMR *) hExtHandle;
@@ -251,7 +251,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgePhysmemNewRamBackedPMR(IMG_HANDLE
 								    phPMRPtr)
 {
 	PVRSRV_ERROR eError;
-	PMR *psPMRPtrInt = NULL;
+	PMR *psPMRPtrInt;
 
 	eError =
 	    PhysmemNewRamBackedPMR(NULL,
@@ -279,7 +279,7 @@ BridgePhysmemNewRamBackedLockedPMR(IMG_HANDLE hBridge, IMG_DEVMEM_SIZE_T uiSize,
 				   IMG_PID ui32PID, IMG_HANDLE * phPMRPtr)
 {
 	PVRSRV_ERROR eError;
-	PMR *psPMRPtrInt = NULL;
+	PMR *psPMRPtrInt;
 
 	eError =
 	    PhysmemNewRamBackedLockedPMR(NULL,
@@ -309,7 +309,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgePhysmemImportSecBuf(IMG_HANDLE
 								 pui64SecBufHandle)
 {
 	PVRSRV_ERROR eError;
-	PMR *psPMRPtrInt = NULL;
+	PMR *psPMRPtrInt;
 
 	eError =
 	    PhysmemImportSecBuf(NULL, (PVRSRV_DEVICE_NODE *) ((void *)hBridge),
@@ -401,8 +401,8 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeDevmemIntCtxCreate(IMG_HANDLE
 								pui32CPUCacheLineSize)
 {
 	PVRSRV_ERROR eError;
-	DEVMEMINT_CTX *psDevMemServerContextInt = NULL;
-	IMG_HANDLE hPrivDataInt = NULL;
+	DEVMEMINT_CTX *psDevMemServerContextInt;
+	IMG_HANDLE hPrivDataInt;
 
 	eError =
 	    DevmemIntCtxCreate(NULL, (PVRSRV_DEVICE_NODE *) ((void *)hBridge),
@@ -446,7 +446,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeDevmemIntHeapCreate(IMG_HANDLE
 {
 	PVRSRV_ERROR eError;
 	DEVMEMINT_CTX *psDevmemCtxInt;
-	DEVMEMINT_HEAP *psDevmemHeapPtrInt = NULL;
+	DEVMEMINT_HEAP *psDevmemHeapPtrInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	psDevmemCtxInt = (DEVMEMINT_CTX *) hDevmemCtx;
@@ -492,7 +492,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeDevmemIntMapPMR(IMG_HANDLE hBridge,
 	DEVMEMINT_HEAP *psDevmemServerHeapInt;
 	DEVMEMINT_RESERVATION *psReservationInt;
 	PMR *psPMRInt;
-	DEVMEMINT_MAPPING *psMappingInt = NULL;
+	DEVMEMINT_MAPPING *psMappingInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	psDevmemServerHeapInt = (DEVMEMINT_HEAP *) hDevmemServerHeap;
@@ -537,7 +537,7 @@ IMG_INTERNAL PVRSRV_ERROR IMG_CALLCONV BridgeDevmemIntReserveRange(IMG_HANDLE
 {
 	PVRSRV_ERROR eError;
 	DEVMEMINT_HEAP *psDevmemServerHeapInt;
-	DEVMEMINT_RESERVATION *psReservationInt = NULL;
+	DEVMEMINT_RESERVATION *psReservationInt;
 	PVR_UNREFERENCED_PARAMETER(hBridge);
 
 	psDevmemServerHeapInt = (DEVMEMINT_HEAP *) hDevmemServerHeap;
