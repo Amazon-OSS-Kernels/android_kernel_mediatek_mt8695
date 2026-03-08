@@ -388,10 +388,13 @@ struct dma_buf *dma_buf_get(int fd)
 
 	file = fget(fd);
 
-	if (!file)
+	if (!file) {
+		pr_err("dma_buf: %s fd(%d) fget fail\n", __func__, fd);
 		return ERR_PTR(-EBADF);
+	}
 
 	if (!is_dma_buf_file(file)) {
+		pr_err("dma_buf: %s fd(%d) not dmabuf file\n", __func__, fd);
 		fput(file);
 		return ERR_PTR(-EINVAL);
 	}

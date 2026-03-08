@@ -797,9 +797,6 @@ static ssize_t mmc_life_time_show(struct device *dev,
 
 	err = mmc_get_ext_csd(card, &ext_csd);
 	if (err) {
-		if (ext_csd)
-			kfree(ext_csd);
-
 		mmc_release_host(card->host);
 		return err;
 	}
@@ -835,9 +832,6 @@ static ssize_t mmc_pre_eol_info_show(struct device *dev,
 
 	err = mmc_get_ext_csd(card, &ext_csd);
 	if (err) {
-		if (ext_csd)
-			kfree(ext_csd);
-
 		mmc_release_host(card->host);
 		return err;
 	}

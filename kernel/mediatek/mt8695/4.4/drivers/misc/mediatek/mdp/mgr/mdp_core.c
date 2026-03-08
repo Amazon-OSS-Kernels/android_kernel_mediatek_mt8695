@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (C) 2023 MediaTek Inc.
+ */
+
 #include <linux/vmalloc.h>
 #include <linux/kthread.h>
 #include <linux/workqueue.h>
@@ -223,6 +228,18 @@ enum MDP_TASK_STATUS mdp_core_put_mdp_task(struct mdp_task_struct *pTask)
 	pTask->current_state = MDP_TASK_STATE_FREE;
 
 	list_del_init(&pTask->list_entry);
+
+	if (pTask->p_src_fence) {
+		list_del_init(&pTask->p_src_fence->list);
+		vfree(pTask->p_src_fence);
+		pTask->p_src_fence = NULL;
+	}
+
+	if (pTask->p_dst_fence) {
+		list_del_init(&pTask->p_dst_fence->list);
+		vfree(pTask->p_dst_fence);
+		pTask->p_dst_fence = NULL;
+	}
 
 	mutex_lock(&global_mdp_task.free_task_list.mutex_lock);
 	list_add_tail(&pTask->list_entry, &global_mdp_task.free_task_list.list);

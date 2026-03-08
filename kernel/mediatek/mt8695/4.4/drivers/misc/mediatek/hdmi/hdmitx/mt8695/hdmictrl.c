@@ -67,6 +67,7 @@ unsigned int _u4SinkProductID;
 unsigned int hdmi_boot_res;
 unsigned int hdmi_boot_colordepth;
 unsigned int hdmi_boot_colorspace;
+unsigned int hdmi_boot_forcedolby;
 unsigned int hdmi_boot_forcehdr;
 
 DEFINE_SEMAPHORE(hdcp_update_mutex);

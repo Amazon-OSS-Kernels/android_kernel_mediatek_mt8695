@@ -1312,8 +1312,10 @@ struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
 	int ret;
 
 	dmabuf = dma_buf_get(fd);
-	if (IS_ERR(dmabuf))
+	if (IS_ERR(dmabuf)) {
+		pr_err("[ION]: %s fd(%d) get dambuf fail\n", __func__, fd);
 		return ERR_CAST(dmabuf);
+	}
 	/* if this memory came from ion */
 
 	if (dmabuf->ops != &dma_buf_ops) {
@@ -1328,6 +1330,7 @@ struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
 	/* if a handle exists for this buffer just take a reference to it */
 	handle = ion_handle_lookup(client, buffer);
 	if (!IS_ERR(handle)) {
+		pr_err("[ION]: %s fd(%d) handle error\n", __func__, fd);
 		ion_handle_get_check_overflow(handle);
 		mutex_unlock(&client->lock);
 		goto end;
@@ -1335,6 +1338,7 @@ struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
 
 	handle = ion_handle_create(client, buffer);
 	if (IS_ERR(handle)) {
+		pr_err("[ION]: %s fd(%d) handle create fail\n", __func__, fd);
 		mutex_unlock(&client->lock);
 		goto end;
 	}
@@ -1342,6 +1346,7 @@ struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
 	ret = ion_handle_add(client, handle);
 	mutex_unlock(&client->lock);
 	if (ret) {
+		pr_err("[ION]: %s fd(%d) handle add fail\n", __func__, fd);
 		ion_handle_put(handle);
 		handle = ERR_PTR(ret);
 	}

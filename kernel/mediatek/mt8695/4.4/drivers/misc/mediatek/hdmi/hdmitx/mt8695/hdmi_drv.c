@@ -255,6 +255,9 @@ unsigned int hdmi_irq, cec_irq;
 
 int hdmi_filter_switch_gpio;
 
+/* forced sdr support */
+unsigned int current_hdr_mode;
+bool hdmi_force_sdr;
 
 struct hdmi_internal_device {
 	/* base address of HDMI registers */
@@ -315,10 +318,18 @@ void hdmi_parse_videolfb(struct device *dev)
 		hdmi_boot_res = videolfb_tag->lfb_res;
 		hdmi_boot_colorspace = videolfb_tag->lfb_colorspace;
 		hdmi_boot_colordepth = videolfb_tag->lfb_colordepth;
+		hdmi_boot_forcedolby = videolfb_tag->lfb_force_dolby;
 		hdmi_boot_forcehdr = videolfb_tag->lfb_hdr_type;
+		current_hdr_mode = hdmi_boot_forcedolby;
+		if (current_hdr_mode == HDMI_FORCE_SDR) {
+			hdmi_force_sdr = TRUE;
+		} else {
+			hdmi_force_sdr = FALSE;
+		}
 	}
-	TX_DEF_LOG("[DT]hdmi_boot_res=,%d,%d,%d,%d\n", hdmi_boot_res,
-		hdmi_boot_colorspace, hdmi_boot_colordepth, hdmi_boot_forcehdr);
+	TX_DEF_LOG("[DT]hdmi_boot_res=,%d,%d,%d,%d,%d,%d\n", hdmi_boot_res,
+		hdmi_boot_colorspace, hdmi_boot_colordepth, hdmi_boot_forcedolby,
+		hdmi_boot_forcehdr, hdmi_force_sdr);
 }
 
 const char *hdmi_use_clock_name_spy(HDMI_REF_CLOCK_ENUM module)
@@ -2281,20 +2292,20 @@ void hdmi_clock_enable(bool bEnable)
 	int i;
 
 	if (bEnable) {
-		HDMI_DRV_LOG("Enable hdmi clocks(include rgb2hdmi)\n");
+		HDMI_DRV_LOG("Enable hdmi clocks(include rgb2hdmi) (%d)\n", MMSYS_HDMI_HDTVD);
 		for (i = 0; i < MMSYS_HDMI_HDTVD; i++) {
-			HDMI_DRV_LOG("1Enable hdmi clocks i = %d\n", i);
+			HDMI_DRV_DBG("1Enable hdmi clocks i = %d\n", i);
 			clk_prepare(hdmi_ref_clock[i]);
 			clk_enable(hdmi_ref_clock[i]);
-			HDMI_DRV_LOG("Enable hdmi clocks i = %d\n", i);
+			HDMI_DRV_DBG("Enable hdmi clocks i = %d\n", i);
 		}
 	} else {
-		HDMI_DRV_LOG("Disable hdmi clocks\n");
+		HDMI_DRV_LOG("Disable hdmi clocks (%d)\n", MMSYS_HDMI_HDTVD);
 		for (i = MMSYS_HDMI_HDTVD - 1; i >= 0; i--) {
-			HDMI_DRV_LOG("1Disable hdmi clocks i = %d\n", i);
+			HDMI_DRV_DBG("1Disable hdmi clocks i = %d\n", i);
 			clk_disable(hdmi_ref_clock[i]);
 			clk_unprepare(hdmi_ref_clock[i]);
-			HDMI_DRV_LOG("Disable hdmi clocks i = %d\n", i);
+			HDMI_DRV_DBG("Disable hdmi clocks i = %d\n", i);
 		}
 	}
 }

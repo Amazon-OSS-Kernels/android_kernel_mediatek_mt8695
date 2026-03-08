@@ -2714,8 +2714,10 @@ extern unsigned int hdmi_boot_res;
 extern unsigned int hdmi_boot_colordepth;
 extern unsigned int hdmi_boot_colorspace;
 extern unsigned int hdmi_audio_event;
+extern unsigned int hdmi_boot_forcedolby;
 extern unsigned int hdmi_boot_forcehdr;
 extern char _bHdrType;
+extern unsigned int current_hdr_mode;
 extern bool hdmi_force_sdr;
 
 extern unsigned int pll_read_state;

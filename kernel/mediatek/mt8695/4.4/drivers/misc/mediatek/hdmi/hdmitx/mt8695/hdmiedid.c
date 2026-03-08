@@ -50,8 +50,6 @@
 #include "hdmiedid.h"
 #include "hdmihdcp.h"
 
-bool hdmi_force_sdr = FALSE;
-
 bool debug_hdr10p_force_enable_edid = FALSE;
 unsigned char debug_hdr10p_force_set_appversion = 0xff;
 

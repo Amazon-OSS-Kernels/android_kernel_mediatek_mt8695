@@ -1382,8 +1382,6 @@ int disp_vdp_irq_handler(uint32_t irq)
 
 		/* non shadow register update */
 		do {
-			/* swap main & sub video */
-			disp_sys_hal_set_main_sub_swap(disp_vdp_get_main_sub_swap_status());
 			disp_vdp_enable_premix_clock(disp_vdp_get_osd_premix());
 		} while(0);
 

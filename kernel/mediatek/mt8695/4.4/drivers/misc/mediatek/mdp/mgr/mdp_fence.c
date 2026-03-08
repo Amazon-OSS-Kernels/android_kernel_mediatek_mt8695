@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Copyright (C) 2023 MediaTek Inc.
+ */
+
 #include <linux/vmalloc.h>
 #include "mdp_fence.h"
 #include "mdp_log.h"
@@ -130,6 +135,7 @@ enum MDP_TASK_STATUS mdp_fence_put_task_fence(struct mdp_task_struct *pTask)
 	struct mdp_fence_struct *p_dst_fence = pTask->p_dst_fence;
 	int count = 0;
 	struct mdp_fence_struct *p_temp_fence = NULL;
+	enum MDP_TASK_STATUS status = MDP_TASK_STATUS_OK;
 
 	DEFINE_WAIT_FUNC(srcwait, woken_wake_function);
 	DEFINE_WAIT_FUNC(dstwait, woken_wake_function);
@@ -161,7 +167,7 @@ enum MDP_TASK_STATUS mdp_fence_put_task_fence(struct mdp_task_struct *pTask)
 				p_temp_fence->fence.value);
 		}
 		mutex_unlock(&p_timeline_mutex[p_src_fence->type]);
-		return MDP_TASK_STATUS_WAIT_INTERNAL_FENCE_TIMEOUT;
+		status = MDP_TASK_STATUS_WAIT_INTERNAL_FENCE_TIMEOUT;
 	}
 	/* 2 ok to release buffer fence */
 	mutex_lock(&p_timeline_mutex[p_src_fence->type]);
@@ -171,25 +177,25 @@ enum MDP_TASK_STATUS mdp_fence_put_task_fence(struct mdp_task_struct *pTask)
 	list_del_init(&p_src_fence->list);
 	list_del_init(&p_dst_fence->list);
 	wake_up(&g_mdp_fence_wait_fence_released_queue[p_src_fence->type]);
+	if (status == MDP_TASK_STATUS_OK) {
+		/* fence is not released */
+		count = p_src_fence->fence.value -
+			p_timeline[p_src_fence->type]->value;
+		while (count-- > 0)
+			timeline_inc(p_timeline[p_src_fence->type], 1);
 
-	/* fence is not released */
-	count = p_src_fence->fence.value - p_timeline[p_src_fence->type]->value;
-	MDP_LOG("task %s release src fence counter[%d]\n", pTask->mdp_command.taskString, count);
-	while (count-- > 0)
-		timeline_inc(p_timeline[p_src_fence->type], 1);
-
-	count = p_dst_fence->fence.value - p_timeline[p_dst_fence->type]->value;
-	MDP_LOG("task %s release fence counter[%d]\n", pTask->mdp_command.taskString, count);
-	while (count-- > 0)
-		timeline_inc(p_timeline[p_dst_fence->type], 1);
-
+		count = p_dst_fence->fence.value -
+				p_timeline[p_dst_fence->type]->value;
+		while (count-- > 0)
+			timeline_inc(p_timeline[p_dst_fence->type], 1);
+	}
 	mutex_unlock(&p_timeline_mutex[p_src_fence->type]);
 	vfree(pTask->p_src_fence);
 	vfree(pTask->p_dst_fence);
 	pTask->p_src_fence = NULL;
 	pTask->p_dst_fence = NULL;
 
-	return MDP_TASK_STATUS_OK;
+	return status;
 }
 
 

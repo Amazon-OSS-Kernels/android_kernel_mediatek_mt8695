@@ -25,7 +25,7 @@
 
 /* Add SCHEMA_ID */
 /* Schema ID */
-#define METRICS_THERMISTOR_SCHEMA_ID "sk77/2/03330430"
+#define METRICS_THERMISTOR_SCHEMA_ID "ol8z/2/02330431"
 
 /* Schema name: efigpterrors */
 #define SMP_GPT_SCHEMA_ID "eos6/2/03330410"
