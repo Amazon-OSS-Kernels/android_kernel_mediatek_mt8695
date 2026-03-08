@@ -104,40 +104,12 @@
 #include "check.h"
 #include "efi.h"
 
-#if defined(CONFIG_GPT_ERROR_METRICS) && (CONFIG_AMAZON_MINERVA_METRICS_LOG)
-#include <linux/metricslog.h>
-#include <linux/workqueue.h>
-#define METRICS_TAG "Kernel"
-#define METRICS_DATA_LEN 512
-#endif
-
-
-#if defined(CONFIG_GPT_ERROR_METRICS) && (CONFIG_AMAZON_MINERVA_METRICS_LOG)
-static bool pgpt_error = false;
-static bool agpt_error = false;
-static char logcat_efi_data[METRICS_DATA_LEN] = {0};
-#endif
-
 /* This allows a kernel command line option 'gpt' to override
  * the test for invalid PMBR.  Not __initdata because reloading
  * the partition tables happens after init too.
  */
 static int force_gpt;
 static int __init
-
-#if defined(CONFIG_GPT_ERROR_METRICS) && (CONFIG_AMAZON_MINERVA_METRICS_LOG)
-gpt_error_fn(const char *str)
-{
-	if (strncmp(str, "pgpt", 4) == 0) {
-		pgpt_error = true;
-	} else if (strncmp(str, "agpt", 4) == 0) {
-		agpt_error = true;
-	}
-	return true;
-}
-__setup("egpt_error=", gpt_error_fn);
-#endif
-
 force_gpt_fn(char *str)
 {
 	force_gpt = 1;
@@ -145,15 +117,6 @@ force_gpt_fn(char *str)
 }
 __setup("gpt", force_gpt_fn);
 
-#if defined(CONFIG_GPT_ERROR_METRICS) && (CONFIG_AMAZON_MINERVA_METRICS_LOG)
-static void efi_metrics(struct work_struct *work)
-{
-	log_to_metrics(ANDROID_LOG_INFO, METRICS_TAG, logcat_efi_data);
-	pr_warn("GPT logged to metrics\n");
-}
-
-static DECLARE_DELAYED_WORK(gpt_err_work, efi_metrics);
-#endif
 
 /**
  * efi_crc32() - EFI version of crc32 function
@@ -640,29 +603,6 @@ static int find_valid_gpt(struct parsed_partitions *state, gpt_header **gpt,
 	legacy_mbr *legacymbr;
 	sector_t total_sectors = i_size_read(state->bdev->bd_inode) >> 9;
 	u64 lastlba;
-
-#if defined(CONFIG_GPT_ERROR_METRICS) && (CONFIG_AMAZON_MINERVA_METRICS_LOG)
-	char *gpt_error = NULL;
-	if (pgpt_error || agpt_error) {
-		gpt_error = ((pgpt_error > agpt_error) ? "pgpt_error" : "agpt_error");
-		pr_warn("GPT header check failed at lk: %s\n",gpt_error);
-		snprintf(logcat_efi_data, METRICS_DATA_LEN,
-			"%s:%s:100:%s,%s,program=GPT;SY,operation=gpterror;SY,"
-			"pgpt_error=%d;FL,agpt_error=%d;FL,Error=%s;SY:us-east-1",
-			SMP_GROUP_ID, SMP_GPT_SCHEMA_ID,
-			MINERVA_PREDEFINED_REQUIRED_FIELD,
-			MINERVA_PREDEFINED_ESSENTIAL_KEY,
-			pgpt_error, agpt_error, gpt_error);
-
-		/* Initial Minerva metrics are drop after bootup
-		 * To avoid dropping of this metrics
-		 * delay the logging of metrics by 30 minutes
-		 */
-		schedule_delayed_work(&gpt_err_work, msecs_to_jiffies(1800000));
-		pgpt_error = false;
-		agpt_error = false;
-	}
-#endif
 
 	if (!ptes)
 		return 0;

@@ -337,7 +337,6 @@ err_mem:
 	iounmap(evt->gpt_base);
 	if (of_address_to_resource(node, 0, &res)) {
 		pr_warn("Failed to parse resource\n");
-		kfree(evt);
 		return;
 	}
 	release_mem_region(res.start, resource_size(&res));
