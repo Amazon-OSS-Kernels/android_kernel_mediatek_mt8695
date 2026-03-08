@@ -51,7 +51,7 @@
 static LIST_HEAD(g_virtual_sensor_dev_list);
 static DEFINE_MUTEX(virtual_sensor_lock);
 
-#ifdef CONFIG_PLATFORM_abc123_FEATURE
+#ifdef CONFIG_PLATFORM_ABC_FEATURE
 #include "../misc/amz_priv.h"
 extern int idme_get_board_long_rev(void);
 #define TMPA "tmp103a"
@@ -218,7 +218,7 @@ static int virtual_sensor_parse_components(struct device_node *np, struct virtua
 	int alpha, offset, weight;
 	int ret = 0;
 
-#ifdef CONFIG_PLATFORM_abc123_FEATURE
+#ifdef CONFIG_PLATFORM_ABC_FEATURE
 	int board_id = 0;
 	board_id = idme_get_board_long_rev();
 #endif
@@ -238,8 +238,8 @@ static int virtual_sensor_parse_components(struct device_node *np, struct virtua
 		pr_info("%s virtual sensor %s params: offset %d alpha %d weight %d\n", __func__, str, offset, alpha, weight);
 
 		list_for_each_entry(tdev, &vtz->virtual_sensor_dev_list, node) {
-#ifdef CONFIG_PLATFORM_abc123_FEATURE
-			//to support abc123 hvt device with tmp
+#ifdef CONFIG_PLATFORM_ABC_FEATURE
+			//to support ABC hvt device with tmp
 			if(ishvt(board_id) && (!strncmp(str, TMPA, strlen(str)) || !strncmp(str, TMPC, strlen(str)))){
 				tdev->tdp.offset = 8000;
 				tdev->tdp.alpha  = 10;

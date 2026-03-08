@@ -1759,6 +1759,8 @@ static void vParser_User_Extension_Tag(unsigned char *prData, unsigned char Len)
 				HDMI_EDID_LOG(" u2svd_420_cmdb = %d\n", u2svd_420_cmdb);
 				for (i = 0; i < 8; i++) {
 					if (u2svd_420_cmdb & 0x0001) {
+						if ((bIdx * 8 + i) >= 128)
+							break;
 					switch (_ui4svd_128_VIC[bIdx * 8 + i] & 0x7f) {
 					case 96:
 					case 106:
