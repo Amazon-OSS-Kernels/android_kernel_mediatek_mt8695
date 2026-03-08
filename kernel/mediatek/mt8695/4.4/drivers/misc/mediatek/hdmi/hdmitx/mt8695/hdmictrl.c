@@ -1397,8 +1397,21 @@ void vSetHDMIAudioIn(void)
 
 	HDMI_AUDIO_FUNC();
 
-	vWriteByteHdmiGRL(TOP_AUD_MAP,
-			  C_SD7 + C_SD6 + C_SD5 + C_SD4 + C_SD3 + C_SD2 + C_SD1 + C_SD0);
+	/* 7.1 PCM swap Ls <->Lrs & Rs <-> Rrs
+	 * to make from L R LFE C Lrs Rrs Ls Rs
+	 * to  L R LFE C Ls Rs Lrs Rrs
+	 */
+	if ((_stAvdAVInfo.e_aud_code == AVD_LPCM) &&
+		((_stAvdAVInfo.u1Aud_Input_Chan_Cnt == AUD_INPUT_7_1) ||
+		(_stAvdAVInfo.u1Aud_Input_Chan_Cnt == AUD_INPUT_7_0))) {
+		vWriteByteHdmiGRL(TOP_AUD_MAP,
+			C_SD7 + C_SD6 + C_SD5 + C_SD4 +
+			C_SD3_SWAP + C_SD2_SWAP + C_SD1 + C_SD0);
+	} else {
+		vWriteByteHdmiGRL(TOP_AUD_MAP,
+			C_SD7 + C_SD6 + C_SD5 + C_SD4 +
+			C_SD3 + C_SD2 + C_SD1 + C_SD0);
+	}
 	vWriteHdmiGRLMsk(AIP_SPDIF_CTRL, 0, 0x0F << 20);
 	vWriteHdmiGRLMsk(AIP_CTRL, 0, SPDIF_EN | DSD_EN | HBRA_ON |
 			 CTS_CAL_N4 | HBR_FROM_SPDIF | SPDIF_INTERNAL_MODULE);
