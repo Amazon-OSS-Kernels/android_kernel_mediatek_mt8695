@@ -16,7 +16,7 @@
 #include "btmtk_config.h"
 #include <linux/pm_wakeup.h>
 
-#define VERSION "v0.0.1.13_2023030601"
+#define VERSION "v0.0.1.13_2022031501"
 
 #define SDIO_HEADER_LEN				4
 #define STP_HEADER_LEN				4
@@ -82,16 +82,6 @@ enum {
 	BTMTK_FOPS_STATE_CLOSING,	/* during closing */
 	BTMTK_FOPS_STATE_CLOSED,	/* closed */
 	BTMTK_FOPS_STATE_MAX
-};
-
-enum {
-	HW_ERR_NONE = 0x00,
-	HW_ERR_CODE_BT_HOST = 0xF0,
-	HW_ERR_CODE_LEGACY_WOBLE = 0xF1,
-	HW_ERR_CODE_CARD_DISC = 0xF2,
-	HW_ERR_CODE_WIFI = 0xF3,
-	HW_ERR_CODE_BT_FW = 0xF4,
-	HW_ERR_CODE_BT_DRIVER = 0xF5,
 };
 
 struct btmtk_sdio_card_reg {
