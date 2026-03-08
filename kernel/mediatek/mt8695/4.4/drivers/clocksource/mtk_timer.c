@@ -131,7 +131,12 @@ static void mtk_clkevt_time_start(struct mtk_clock_event_device *evt,
 
 static int mtk_clkevt_shutdown(struct clock_event_device *clk)
 {
-	mtk_clkevt_time_stop(to_mtk_clk(clk), GPT_CLK_EVT);
+	struct mtk_clock_event_device *evt = to_mtk_clk(clk);
+
+	/* Acknowledge irq */
+	writel(GPT_IRQ_ACK(GPT_CLK_EVT), evt->gpt_base + GPT_IRQ_ACK_REG);
+
+	mtk_clkevt_time_stop(evt, GPT_CLK_EVT);
 	return 0;
 }
 
