@@ -18,19 +18,19 @@
 #ifdef CONFIG_AMAZON_MINERVA_METRICS_LOG
 /* Add required keys here */
 /* Add GROUP_ID */
+#define METRICS_THERMAL_GROUP_ID "o3cc69de"
 
 /* Group name: smpminerva */
 #define SMP_GROUP_ID "f813r7j7"
-#define METRICS_THERMAL_GROUP_ID "o3cc69de"
-
-#define METRICS_THERMISTOR_SCHEMA_ID "sk77/2/03330430"
-
-#define MINERVA_PREDEFINED_REQUIRED_FIELDS "_deviceId=;SY,_deviceType=;SY,_softwareVersion=;SY,_platform=;SY,_marketPlaceId=;SY,_countryOfResidence=;SY,_otaGroupName=;SY,_osFileTag=;SY"
 
 /* Add SCHEMA_ID */
+/* Schema ID */
+#define METRICS_THERMISTOR_SCHEMA_ID "sk77/2/03330430"
 
 /* Schema name: efigpterrors */
 #define SMP_GPT_SCHEMA_ID "9rpg/2/03330400"
+
+#define MINERVA_PREDEFINED_REQUIRED_FIELDS "_deviceId=;SY,_deviceType=;SY,_softwareVersion=;SY,_platform=;SY,_marketPlaceId=;SY,_countryOfResidence=;SY,_otaGroupName=;SY,_osFileTag=;SY"
 
 #define MINERVA_PREDEFINED_REQUIRED_FIELD "_deviceType=;SY,_platform=;SY,_marketPlaceId=;SY,_countryOfResidence=;SY,_otaGroupName=;SY,_osFileTag=;SY"
 

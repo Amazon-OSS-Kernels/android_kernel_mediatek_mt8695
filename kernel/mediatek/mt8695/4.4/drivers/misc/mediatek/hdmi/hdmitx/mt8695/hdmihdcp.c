@@ -743,7 +743,7 @@ unsigned char bCheckHDCPRiStatus(void)
 bool fgCompareRi(void)
 {
 	unsigned char bTemp;
-	unsigned char bHDCPBuf[4];
+	unsigned char bHDCPBuf[4] = {0};
 
 	HDMI_HDCP_FUNC();
 
