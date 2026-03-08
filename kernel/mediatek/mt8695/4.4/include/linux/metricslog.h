@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2022 Amazon Technologies, Inc. All Rights Reserved.
+ * Copyright 2011-2023 Amazon Technologies, Inc. All Rights Reserved.
  * Portions Copyright (C) 2007-2008 Google, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -14,6 +14,31 @@
 
 #ifndef _LINUX_METRICSLOG_H
 #define _LINUX_METRICSLOG_H
+
+#ifdef CONFIG_AMAZON_MINERVA_METRICS_LOG
+/* Add required keys here */
+/* Add GROUP_ID */
+/* Group ID */
+/* Group name: smpminerva */
+#define SMP_GROUP_ID "f813r7j7"
+
+#define METRICS_THERMAL_GROUP_ID "o3cc69de"
+
+/* Add SCHEMA_ID */
+/* Schema ID */
+/* Schema name: efigpterrors */
+#define SMP_GPT_SCHEMA_ID "9rpg/2/03330400"
+
+#define METRICS_THERMISTOR_SCHEMA_ID "sk77/2/03330430"
+
+#define MINERVA_PREDEFINED_REQUIRED_FIELD "_deviceType=;SY,_platform=;SY,_marketPlaceId=;SY,_countryOfResidence=;SY,_otaGroupName=;SY,_osFileTag=;SY"
+
+#define MINERVA_PREDEFINED_ESSENTIAL_KEY "_softwareVersion=;SY,_model=;SY,_buildType=;SY,_hardware=;SY"
+
+
+#define MINERVA_PREDEFINED_REQUIRED_FIELDS "_deviceId=;SY,_deviceType=;SY,_softwareVersion=;SY,_platform=;SY,_marketPlaceId=;SY,_countryOfResidence=;SY,_otaGroupName=;SY,_osFileTag=;SY"
+
+#endif /* CONFIG_AMAZON_MINERVA_METRICS_LOG */
 
 typedef enum {
 	VITALS_NORMAL = 0,
@@ -48,5 +73,20 @@ int log_timer_to_vitals(enum android_log_priority priority,
 	const char *domain, const char *program,
 	const char *source, const char *key,
 	long timer_value, const char *unit, vitals_type type);
+
+int log_counter_to_vitals_v2(enum android_log_priority priority,
+	const char *group_id, const char *schema_id,
+	const char *domain, const char *program,
+	const char *source, const char *key,
+	long counter_value, const char *unit,
+	const char *metadata, vitals_type type,
+	const char *dimensions, const char *annotations);
+
+int log_timer_to_vitals_v2(enum android_log_priority priority,
+	const char *group_id, const char *schema_id,
+	const char *domain, const char *program,
+	const char *source, const char *key,
+	long timer_value, const char *unit, vitals_type type,
+	const char *dimensions, const char *annotations);
 
 #endif /* _LINUX_METRICSLOG_H */

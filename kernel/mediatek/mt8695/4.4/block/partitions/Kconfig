@@ -252,6 +252,15 @@ config EFI_PARTITION
 	  Say Y here if you would like to use hard disks under Linux which
 	  were partitioned using EFI GPT.
 
+config GPT_ERROR_METRICS
+        bool "Enable GPT support"
+        depends on EFI_PARTITION
+        default n
+        help
+          Say Y here if you would like to log metrics when gpt
+          header failure occurred in bootloader and the information is
+          passed to kernel to log to metrics.
+
 config SYSV68_PARTITION
 	bool "SYSV68 partition table support" if PARTITION_ADVANCED
 	default y if VME
