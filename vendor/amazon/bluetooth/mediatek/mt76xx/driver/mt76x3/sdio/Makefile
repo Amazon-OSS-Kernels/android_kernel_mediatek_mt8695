@@ -35,8 +35,8 @@ ifeq ($(CONFIG_MP_WAKEUP_SOURCE_SYSFS_STAT), y)
 else
 endif
 
-ifeq ($(TARGET_PRODUCT), abc123)
-        ccflags-y += -Dabc123_AML_TEMP_CHIP_RESET_FIX
+ifneq ($(filter abc123_ftv abc123 abc123, $(TARGET_PRODUCT)),)
+    ccflags-y += -Dabc123_AML_TEMP_CHIP_RESET_FIX
 endif
 
 ccflags-y += -DANDROID_OS
