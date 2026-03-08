@@ -876,16 +876,20 @@ static int snd_ctl_elem_read(struct snd_card *card,
 	kctl = snd_ctl_find_id(card, &control->id);
 	if (kctl == NULL) {
 		result = -ENOENT;
-	} else {
-		index_offset = snd_ctl_get_ioff(kctl, &control->id);
-		vd = &kctl->vd[index_offset];
-		if ((vd->access & SNDRV_CTL_ELEM_ACCESS_READ) &&
-		    kctl->get != NULL) {
-			snd_ctl_build_ioff(&control->id, kctl, index_offset);
-			result = kctl->get(kctl, control);
-		} else
-			result = -EPERM;
+		goto unlock;
 	}
+
+	index_offset = snd_ctl_get_ioff(kctl, &control->id);
+	vd = &kctl->vd[index_offset];
+	if (!(vd->access & SNDRV_CTL_ELEM_ACCESS_READ) || kctl->get == NULL) {
+		result = -EPERM;
+		goto unlock;
+	}
+
+	snd_ctl_build_ioff(&control->id, kctl, index_offset);
+	result = kctl->get(kctl, control);
+
+unlock:
 	up_read(&card->controls_rwsem);
 	return result;
 }

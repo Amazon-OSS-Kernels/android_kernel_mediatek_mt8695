@@ -2293,14 +2293,33 @@ void vSetHDMITxPLL(unsigned int bResIndex, unsigned int bClockRate)
 		vWriteIoHdmiAnaMsk(HDMI20_CFG_0, (0x0 << RG_HDMITX20_DRV_IMP_EN_SHIFT),
 			       RG_HDMITX20_DRV_IMP_EN);
 
-		vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_CLK_SHIFT),
-			       RG_HDMITX20_DRV_IBIAS_CLK);
-		vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_D2_SHIFT),
-			       RG_HDMITX20_DRV_IBIAS_D2);
-		vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_D1_SHIFT),
-			       RG_HDMITX20_DRV_IBIAS_D1);
-		vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_D0_SHIFT),
-			       RG_HDMITX20_DRV_IBIAS_D0);
+#ifdef CONFIG_MTK_NO_4K_SUPPORT
+		if ((bResIndex == HDMI_VIDEO_1920x1080p_60Hz ||
+		     bResIndex == HDMI_VIDEO_1920x1080p_59_94Hz ||
+		     bResIndex == HDMI_VIDEO_1920x1080p_50Hz) &&
+		     bClockRate == TMDS_CLK_X1){
+			HDMI_PLUG_LOG("[hdmi]1080p60/50 8 bits mode\n");
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_CLK_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_CLK);
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x14 << RG_HDMITX20_DRV_IBIAS_D2_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_D2);
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x14 << RG_HDMITX20_DRV_IBIAS_D1_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_D1);
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x14 << RG_HDMITX20_DRV_IBIAS_D0_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_D0);
+		}
+		else
+#endif
+		{
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_CLK_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_CLK);
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_D2_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_D2);
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_D1_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_D1);
+			vWriteIoHdmiAnaMsk(HDM20_CFG_2, (0x10 << RG_HDMITX20_DRV_IBIAS_D0_SHIFT),
+				       RG_HDMITX20_DRV_IBIAS_D0);
+		}
 
 		vWriteIoHdmiAnaMsk(HDMI20_CFG_3, (0 << RG_HDMITX20_DRV_IMP_CLK_EN1_SHIFT),
 			       RG_HDMITX20_DRV_IMP_CLK_EN1);

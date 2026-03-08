@@ -49,6 +49,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "devicemem_utils.h"
 #include "client_mm_bridge.h"
 
+#if defined(__KERNEL__)
+#include "srvcore.h"
+#else
+#include "srvcore_intern.h"
+#endif
+
 /*
 	SVM heap management support functions for CPU (un)mapping
  */
@@ -322,7 +328,6 @@ _DevmemImportStructDevUnmapSVM(DEVMEM_HEAP *psHeap, DEVMEM_IMPORT *psImport)
 	into the device or CPU on demand, but neither is
 	required.
  */
-
 IMG_INTERNAL
 void _DevmemImportStructAcquire(DEVMEM_IMPORT *psImport)
 {
@@ -330,11 +335,20 @@ void _DevmemImportStructAcquire(DEVMEM_IMPORT *psImport)
 	PVR_UNREFERENCED_PARAMETER(iRefCount);
 	PVR_ASSERT(iRefCount != 1);
 
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
-			__FUNCTION__,
-			psImport,
-			iRefCount-1,
-			iRefCount);
+#if defined(__KERNEL__)
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hRefCount %d->%d",
+            __FUNCTION__,
+            psImport,
+            iRefCount-1,
+            iRefCount);
+#else
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hDevConnection->hServices=<%p> hRefCount %d->%d",
+ 			__FUNCTION__,
+ 			psImport,
+            psImport->hDevConnection->hServices,
+ 			iRefCount-1,
+ 			iRefCount);
+#endif
 }
 
 IMG_INTERNAL
@@ -343,16 +357,29 @@ IMG_BOOL _DevmemImportStructRelease(DEVMEM_IMPORT *psImport)
 	IMG_INT iRefCount = OSAtomicDecrement(&psImport->hRefCount);
 	PVR_ASSERT(iRefCount >= 0);
 
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
-			__FUNCTION__,
-			psImport,
-			iRefCount+1,
-			iRefCount);
+#if defined(__KERNEL__)
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hRefCount %d->%d",
+ 			__FUNCTION__,
+ 			psImport,
+ 			iRefCount+1,
+ 			iRefCount);
+#else
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hDevConnection->hServices=<%p> hRefCount %d->%d",
+            __FUNCTION__,
+            psImport,
+            psImport->hDevConnection->hServices,
+            iRefCount+1,
+            iRefCount);
+#endif
 
 	if (iRefCount == 0)
 	{
-		BridgePMRUnrefPMR(psImport->hDevConnection,
-				psImport->hPMR);
+		PVRSRV_ERROR eError = DestroyServerResource(psImport->hDevConnection,
+		                                            NULL,
+		                                            BridgePMRUnrefPMR,
+		                                            psImport->hPMR);
+		PVR_ASSERT(eError == PVRSRV_OK);
+
 		OSLockDestroy(psImport->sCPUImport.hLock);
 		OSLockDestroy(psImport->sDeviceImport.hLock);
 		OSLockDestroy(psImport->hLock);
@@ -431,11 +458,20 @@ void _DevmemMemDescInit(DEVMEM_MEMDESC *psMemDesc,
 		DEVMEM_IMPORT *psImport,
 		IMG_DEVMEM_SIZE_T uiSize)
 {
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+#if defined(__KERNEL__)
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hRefCount %d->%d",
 			__FUNCTION__,
 			psMemDesc,
 			0,
 			1);
+#else
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hDevConnection->hServices=<%p> hRefCount %d->%d",
+            __FUNCTION__,
+            psMemDesc,
+            psImport->hDevConnection->hServices,
+            0,
+            1);
+#endif
 
 	psMemDesc->psImport = psImport;
 	psMemDesc->uiOffset = uiOffset;
@@ -458,11 +494,20 @@ void _DevmemMemDescAcquire(DEVMEM_MEMDESC *psMemDesc)
 	IMG_INT iRefCount = 0;
 
 	iRefCount = OSAtomicIncrement(&psMemDesc->hRefCount);
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+#if defined(__KERNEL__)
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hRefCount %d->%d",
 			__FUNCTION__,
 			psMemDesc,
 			iRefCount-1,
 			iRefCount);
+#else
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hDevConnection->hServices=<%p> hRefCount %d->%d",
+            __FUNCTION__,
+            psMemDesc,
+            psMemDesc->psImport->hDevConnection->hServices,
+            iRefCount-1,
+            iRefCount);
+#endif
 }
 
 IMG_INTERNAL
@@ -474,11 +519,20 @@ IMG_BOOL _DevmemMemDescRelease(DEVMEM_MEMDESC *psMemDesc)
 	iRefCount = OSAtomicDecrement(&psMemDesc->hRefCount);
 	PVR_ASSERT(iRefCount >= 0);
 
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+#if defined(__KERNEL__)
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hRefCount %d->%d",
 			__FUNCTION__,
 			psMemDesc,
 			iRefCount+1,
 			iRefCount);
+#else
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hDevConnection->hServices=<%p> hRefCount %d->%d",
+            __FUNCTION__,
+            psMemDesc,
+            psMemDesc->psImport->hDevConnection->hServices,
+            iRefCount+1,
+            iRefCount);
+#endif
 
 	if (iRefCount == 0)
 	{
@@ -646,11 +700,20 @@ void _DevmemImportStructInit(DEVMEM_IMPORT *psImport,
 		IMG_HANDLE hPMR,
 		DEVMEM_PROPERTIES_T uiProperties)
 {
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+#if defined(__KERNEL__)
+    DEVMEM_REFCOUNT_PRINT("%s (%p) hRefCount %d->%d",
 			__FUNCTION__,
 			psImport,
 			0,
 			1);
+#else
+    DEVMEM_REFCOUNT_PRINT("%s (psImport=<%p>) hDevConnection->hServices=<%p> hRefCount %d->%d",
+            __FUNCTION__,
+            psImport,
+            psImport->hDevConnection->hServices,
+            0,
+            1);
+#endif
 
 	psImport->uiSize = uiSize;
 	psImport->uiAlign = uiAlign;
@@ -685,12 +748,20 @@ PVRSRV_ERROR _DevmemImportStructDevMap(DEVMEM_HEAP *psHeap,
 	psDeviceImport = &psImport->sDeviceImport;
 
 	OSLockAcquire(psDeviceImport->hLock);
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+#if defined(__KERNEL__)
+    DEVMEM_REFCOUNT_PRINT("%s (%p) sDeviceImport.ui32RefCount %d->%d",
 			__FUNCTION__,
 			psImport,
 			psDeviceImport->ui32RefCount,
 			psDeviceImport->ui32RefCount+1);
-
+#else
+    DEVMEM_REFCOUNT_PRINT("%s (psImport=<%p>) hDevConnection->hServices=<%p> hRefCount %d->%d",
+            __FUNCTION__,
+            psImport,
+            psImport->hDevConnection->hServices,
+            psDeviceImport->ui32RefCount,
+            psDeviceImport->ui32RefCount+1);
+#endif
 	if (psDeviceImport->ui32RefCount++ == 0)
 	{
 		_DevmemImportStructAcquire(psImport);
@@ -834,7 +905,7 @@ PVRSRV_ERROR _DevmemImportStructDevMap(DEVMEM_HEAP *psHeap,
 		}
 
 		/* Setup page tables for the allocated VM space */
-		eError = BridgeDevmemIntReserveRange(psHeap->psCtx->hDevConnection,
+		eError = BridgeDevmemIntReserveRange(GetBridgeHandle(psHeap->psCtx->hDevConnection),
 				psHeap->hDevMemServerHeap,
 				sBase,
 				uiAllocatedSize,
@@ -851,7 +922,7 @@ PVRSRV_ERROR _DevmemImportStructDevMap(DEVMEM_HEAP *psHeap,
 			uiMapFlags = psImport->uiFlags & PVRSRV_MEMALLOCFLAGS_PERMAPPINGFLAGSMASK;
 
 			/* Actually map the PMR to allocated VM space */
-			eError = BridgeDevmemIntMapPMR(psHeap->psCtx->hDevConnection,
+			eError = BridgeDevmemIntMapPMR(GetBridgeHandle(psHeap->psCtx->hDevConnection),
 					psHeap->hDevMemServerHeap,
 					hReservation,
 					psImport->hPMR,
@@ -886,7 +957,7 @@ PVRSRV_ERROR _DevmemImportStructDevMap(DEVMEM_HEAP *psHeap,
 	return PVRSRV_OK;
 
 	failMap:
-	BridgeDevmemIntUnreserveRange(psHeap->psCtx->hDevConnection,
+	BridgeDevmemIntUnreserveRange(GetBridgeHandle(psHeap->psCtx->hDevConnection),
 			hReservation);
 	failReserve:
 	if (ui64OptionalMapAddress == 0)
@@ -900,7 +971,12 @@ PVRSRV_ERROR _DevmemImportStructDevMap(DEVMEM_HEAP *psHeap,
 	failParams:
 	if (!bDestroyed)
 	{
-		psDeviceImport->ui32RefCount--;
+        DEVMEM_REFCOUNT_PRINT("%s (%p) sDeviceImport.ui32RefCount %d->%d",
+                __FUNCTION__,
+                psImport,
+                psDeviceImport->ui32RefCount,
+                psDeviceImport->ui32RefCount-1);
+        psDeviceImport->ui32RefCount--;
 		OSLockRelease(psDeviceImport->hLock);
 	}
 	PVR_ASSERT(eError != PVRSRV_OK);
@@ -919,7 +995,7 @@ void _DevmemImportStructDevUnmap(DEVMEM_IMPORT *psImport)
 	psDeviceImport = &psImport->sDeviceImport;
 
 	OSLockAcquire(psDeviceImport->hLock);
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+    DEVMEM_REFCOUNT_PRINT("%s (%p) sDeviceImport.ui32RefCount %d->%d",
 			__FUNCTION__,
 			psImport,
 			psDeviceImport->ui32RefCount,
@@ -931,13 +1007,17 @@ void _DevmemImportStructDevUnmap(DEVMEM_IMPORT *psImport)
 
 		if (psDeviceImport->bMapped)
 		{
-			eError = BridgeDevmemIntUnmapPMR(psImport->hDevConnection,
-					psDeviceImport->hMapping);
+			eError = DestroyServerResource(psImport->hDevConnection,
+			                               NULL,
+			                               BridgeDevmemIntUnmapPMR,
+			                               psDeviceImport->hMapping);
 			PVR_ASSERT(eError == PVRSRV_OK);
 		}
 
-		eError = BridgeDevmemIntUnreserveRange(psImport->hDevConnection,
-				psDeviceImport->hReservation);
+		eError = DestroyServerResource(psImport->hDevConnection,
+		                               NULL,
+		                               BridgeDevmemIntUnreserveRange,
+		                               psDeviceImport->hReservation);
 		PVR_ASSERT(eError == PVRSRV_OK);
 
 		psDeviceImport->bMapped = IMG_FALSE;
@@ -980,7 +1060,7 @@ PVRSRV_ERROR _DevmemImportStructCPUMap(DEVMEM_IMPORT *psImport)
 	psCPUImport = &psImport->sCPUImport;
 
 	OSLockAcquire(psCPUImport->hLock);
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+    DEVMEM_REFCOUNT_PRINT("%s (%p) sCPUImport.ui32RefCount %d->%d",
 			__FUNCTION__,
 			psImport,
 			psCPUImport->ui32RefCount,
@@ -990,7 +1070,7 @@ PVRSRV_ERROR _DevmemImportStructCPUMap(DEVMEM_IMPORT *psImport)
 	{
 		_DevmemImportStructAcquire(psImport);
 
-		eError = OSMMapPMR(psImport->hDevConnection,
+		eError = OSMMapPMR(GetBridgeHandle(psImport->hDevConnection),
 				psImport->hPMR,
 				psImport->uiSize,
 				psImport->uiFlags,
@@ -1010,7 +1090,12 @@ PVRSRV_ERROR _DevmemImportStructCPUMap(DEVMEM_IMPORT *psImport)
 	return PVRSRV_OK;
 
 	failMap:
-	psCPUImport->ui32RefCount--;
+    DEVMEM_REFCOUNT_PRINT("%s (%p) sCPUImport.ui32RefCount %d->%d",
+            __FUNCTION__,
+            psImport,
+            psCPUImport->ui32RefCount,
+            psCPUImport->ui32RefCount-1);
+    psCPUImport->ui32RefCount--;
 	if (!_DevmemImportStructRelease(psImport))
 	{
 		OSLockRelease(psCPUImport->hLock);
@@ -1030,7 +1115,7 @@ void _DevmemImportStructCPUUnmap(DEVMEM_IMPORT *psImport)
 	psCPUImport = &psImport->sCPUImport;
 
 	OSLockAcquire(psCPUImport->hLock);
-	DEVMEM_REFCOUNT_PRINT("%s (%p) %d->%d",
+    DEVMEM_REFCOUNT_PRINT("%s (%p) sCPUImport.ui32RefCount %d->%d",
 			__FUNCTION__,
 			psImport,
 			psCPUImport->ui32RefCount,
@@ -1046,7 +1131,7 @@ void _DevmemImportStructCPUUnmap(DEVMEM_IMPORT *psImport)
 #if (defined(_WIN32) && !defined(_WIN64)) || (defined(LINUX) && defined(__i386__))
 		PVR_ASSERT(psImport->uiSize<IMG_UINT32_MAX);
 #endif
-		OSMUnmapPMR(psImport->hDevConnection,
+		OSMUnmapPMR(GetBridgeHandle(psImport->hDevConnection),
 				psImport->hPMR,
 				psCPUImport->hOSMMapData,
 				psCPUImport->pvCPUVAddr,

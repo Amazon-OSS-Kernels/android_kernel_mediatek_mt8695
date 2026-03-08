@@ -804,7 +804,7 @@ static long vcodec_lat_lockhw(unsigned long arg)
 				bLockedHW = VAL_TRUE;
 				if (eValRet == VAL_RESULT_INVALID_ISR && FirstUseDecHW != 1) {
 					MODULE_MFV_LOGE("[WARNING] reset power/irq when HWLock!!\n");
-					vdec_power_off();
+					vdec_lat_power_off();
 					disable_irq(VDEC_LAT_IRQ_ID);
 				}
 				vdec_lat_power_on();

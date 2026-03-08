@@ -73,6 +73,7 @@ static int lowmem_minfree[6] = {
 static int lowmem_minfree_size = 4;
 
 static unsigned long lowmem_deathpending_timeout;
+static pid_t lowmem_deathpending_tgid;
 
 /* fosmod_fireos_crash_reporting begin */
 /* Declarations */
@@ -195,7 +196,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		if (!p)
 			continue;
 
-		if (test_tsk_thread_flag(p, TIF_MEMDIE) &&
+		if ((test_tsk_thread_flag(p, TIF_MEMDIE) || (lowmem_deathpending_tgid == task_tgid_nr(p))) &&
 		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			task_unlock(p);
 			rcu_read_unlock();
@@ -277,6 +278,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		long free = other_free * (long)(PAGE_SIZE / 1024);
 
 		task_lock(selected);
+		lowmem_deathpending_tgid = task_tgid_nr(selected);
 		send_sig(SIGKILL, selected, 0);
 		/*
 		 * FIXME: lowmemorykiller shouldn't abuse global OOM killer
