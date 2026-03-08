@@ -3273,12 +3273,27 @@ static int btmtk_sdio_set_audio_slave(void)
 static int btmtk_sdio_read_pin_mux_setting(u32 *value)
 {
 	int ret = 0;
-	u8 cmd[] = { 0xD1, 0xFC, 0x04, 0x54, 0x30, 0x02, 0x81 };
+	u8 *cmd = NULL;
+	u8 cmd_7668[] = { 0xD1, 0xFC, 0x04, 0x54, 0x30, 0x02, 0x81 };
+	u8 cmd_7663[] = { 0xD1, 0xFC, 0x04, 0x54, 0x50, 0x00, 0x78 };
 	u8 event[] = { 0x0E, 0x08, 0x01, 0xD1, 0xFC };
 
 	BTMTK_INFO();
 
-	ret = btmtk_sdio_send_hci_cmd(HCI_COMMAND_PKT, cmd, sizeof(cmd),
+#if SUPPORT_MT7668
+	if (is_mt7668(g_card))
+		cmd = cmd_7668;
+#endif
+#if SUPPORT_MT7663
+	if (is_mt7663(g_card))
+		cmd = cmd_7663;
+#endif
+	if (!cmd) {
+		BTMTK_INFO("not supported");
+		return 0;
+	}
+
+	ret = btmtk_sdio_send_hci_cmd(HCI_COMMAND_PKT, cmd, READ_CR_CMD_LEN,
 		event, sizeof(event), COMP_EVENT_TIMO);
 
 	if (ret)
@@ -3319,7 +3334,7 @@ static int btmtk_sdio_write_pin_mux_setting(u32 value)
 	cmd[9] = ((value & 0x00FF0000) >> 16);
 	cmd[10] = ((value & 0xFF000000) >> 24);
 
-	ret = btmtk_sdio_send_hci_cmd(HCI_COMMAND_PKT, cmd, cmd[2] + 3,
+	ret = btmtk_sdio_send_hci_cmd(HCI_COMMAND_PKT, cmd, WRITE_CR_CMD_LEN,
 		event, sizeof(event), COMP_EVENT_TIMO);
 
 	return ret;
@@ -3361,7 +3376,7 @@ static int btmtk_sdio_set_audio_pin_mux(void)
 		BTMTK_ERR("btmtk_sdio_read_pin_mux_setting error(%d)", ret);
 		return ret;
 	}
-	BTMTK_INFO("confirm pinmux %04x", pinmux);
+	BTMTK_INFO("confirm pinmux %08x", pinmux);
 
 	return ret;
 }

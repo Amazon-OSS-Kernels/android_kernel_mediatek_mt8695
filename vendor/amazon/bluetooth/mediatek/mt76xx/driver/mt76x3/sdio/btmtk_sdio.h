@@ -16,7 +16,7 @@
 #include "btmtk_config.h"
 #include <linux/pm_wakeup.h>
 
-#define VERSION "v0.0.1.13_2023041001"
+#define VERSION "v0.0.1.13_2023062701"
 
 #define SDIO_HEADER_LEN				4
 #define STP_HEADER_LEN				4
@@ -320,6 +320,9 @@ struct bt_stereo_para {
 #define RX_DONE                 0x00000002
 #define FW_OWN_BACK_INT             0x00000001
 
+/* Length of read/write CR command */
+#define READ_CR_CMD_LEN 7
+#define WRITE_CR_CMD_LEN 11
 
 #define MTKSTP_HEADER_SIZE 0x0004
 
